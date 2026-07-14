@@ -34,39 +34,41 @@ export function CameraScreen({ displayName }: CameraScreenProps) {
 
       {/* Middle: camera preview, fills remaining space */}
       <div className="relative flex-1 overflow-hidden bg-gray-900">
-        {status === 'ready' && (
-          <video
+       {/* Video is always rendered so videoRef is available as soon as the
+        stream is ready to attach - visibility is controlled with CSS
+        instead of conditional mounting, avoiding a race between
+        "stream attached" and "element exists in the DOM". */}
+        <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="h-full w-full object-cover"
-          />
-        )}
+            className={`h-full w-full object-cover ${status === 'ready' ? '' : 'hidden'}`}
+        />
 
         {status === 'loading' && (
-          <div className="flex h-full items-center justify-center text-gray-400">
-            Starting camera...
-          </div>
+            <div className="flex h-full items-center justify-center text-gray-400">
+                Starting camera...
+            </div>
         )}
 
         {status === 'permission-denied' && (
-          <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">
-            Camera access was denied. Please allow camera access in your
-            browser settings and reload the page.
-          </div>
+            <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">
+                Camera access was denied. Please allow camera access in your
+                browser settings and reload the page.
+            </div>
         )}
 
         {status === 'no-camera' && (
-          <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">
-            No camera was found on this device.
-          </div>
+            <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">
+                No camera was found on this device.
+            </div>
         )}
 
         {status === 'error' && (
-          <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">
-            Something went wrong starting the camera. Please reload the page.
-          </div>
+            <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">
+                Something went wrong starting the camera. Please reload the page.
+            </div>
         )}
       </div>
 
