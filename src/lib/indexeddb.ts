@@ -60,6 +60,7 @@ interface CameraDB extends DBSchema {
       blob: Blob; // the compressed image data itself
       status: 'pending' | 'uploading' | 'uploaded' | 'failed'; // 'pending' = not yet attempted (Milestone 6 starts using the rest)
       capturedAt: number; // Date.now(), used to keep gallery order stable
+      serverShotNumber?: number; // set once the server has claimed a shot number for this photo
     };
   };
 }
@@ -152,4 +153,19 @@ export async function updatePhotoStatus(localId: string, status: LocalPhoto['sta
 export async function deletePhotoLocal(localId: string) {
   const db = await getDB();
   await db.delete('photos', localId);
+}
+
+// Updates server-related fields on a photo after an upload attempt -
+// separate from updatePhotoStatus since we sometimes need to save the
+// claimed shotNumber even when the overall attempt failed.
+export async function updatePhotoServerInfo(
+  localId: string,
+  updates: Partial<Pick<LocalPhoto, 'status' | 'serverShotNumber' | 'fileName'>>
+) {
+  const db = await getDB();
+  const photo = await db.get('photos', localId);
+  if (photo) {
+    Object.assign(photo, updates);
+    await db.put('photos', photo);
+  }
 }

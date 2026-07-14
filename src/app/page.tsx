@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { getDeviceInfo } from '@/lib/indexeddb';
 import { RegistrationScreen } from '@/components/registration/RegistrationScreen';
 import { CameraScreen } from '@/components/camera/CameraScreen';
+import { processUploadQueue } from '@/lib/uploadQueue';
 
 type AppState =
   | { status: 'checking' }
@@ -29,6 +30,7 @@ export default function Home() {
     }
 
     checkRegistration();
+    processUploadQueue();
   }, []);
 
   if (appState.status === 'checking') {

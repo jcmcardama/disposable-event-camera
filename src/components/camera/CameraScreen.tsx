@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useCamera } from '@/lib/useCamera';
 import { compressImage } from '@/lib/compressImage';
 import { savePhoto, getAllPhotos } from '@/lib/indexeddb';
+import { processUploadQueue } from '@/lib/uploadQueue';
 
 const SHOT_LIMIT = 5; // will move to server-driven config in a later milestone
 
@@ -56,6 +57,12 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
       });
 
       setPhotoCount(shotNumber);
+
+      // Kick off upload in the background - deliberately not awaited,
+      // so the capture button re-enables immediately. Reliability comes
+      // from the photo already being safely in IndexedDB, not from
+      // waiting on the network here.
+      processUploadQueue();
     } finally {
       setIsCapturing(false);
     }
