@@ -4,12 +4,21 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { getEventStatus } from '@/lib/eventStatus';
 
 export async function POST(request: NextRequest) {
+  const eventStatus = await getEventStatus();
+  if (!eventStatus.isOpen) {
+    return NextResponse.json(
+      { error: 'Event is not currently open', reason: eventStatus.reason },
+      { status: 403 }
+    );
+  }
+
   const formData = await request.formData();
   const deviceId = formData.get('deviceId');
   const file = formData.get('file');
-  const existingShotNumberRaw = formData.get('shotNumber'); // present on retries
+  const existingShotNumberRaw = formData.get('shotNumber');
 
   if (typeof deviceId !== 'string' || !deviceId) {
     return NextResponse.json({ error: 'Missing deviceId' }, { status: 400 });
@@ -30,18 +39,15 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unknown device' }, { status: 404 });
   }
 
-  const SHOT_LIMIT = 5;
+  // SHOT_LIMIT now comes from event_settings, not a hardcoded constant.
   let shotNumber: number;
 
   if (typeof existingShotNumberRaw === 'string' && existingShotNumberRaw) {
-    // Retrying an upload that already claimed a shot number on a
-    // previous attempt - reuse it instead of claiming a new one.
     shotNumber = Number(existingShotNumberRaw);
   } else {
-    // First attempt for this photo - claim a new shot number.
     const { data: newShotNumber, error: rpcError } = await supabase.rpc(
       'increment_shots_used',
-      { p_device_id: deviceId, p_shot_limit: SHOT_LIMIT }
+      { p_device_id: deviceId, p_shot_limit: eventStatus.shotLimit }
     );
 
     if (rpcError) {

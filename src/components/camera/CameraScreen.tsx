@@ -8,14 +8,13 @@ import { processUploadQueue } from '@/lib/uploadQueue';
 import { GalleryBottomSheet } from '@/components/gallery/GalleryBottomSheet';
 import { GalleryButton } from '../gallery/GalleryButton';
 
-const SHOT_LIMIT = 5;
-
 interface CameraScreenProps {
   deviceId: string;
   displayName: string;
+  shotLimit: number; // now comes from event_settings via page.tsx, not hardcoded
 }
 
-export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
+export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenProps) {
   const { videoRef, status, switchCamera, capturePhoto } = useCamera();
   const [photoCount, setPhotoCount] = useState<number | null>(null); // null = still loading from IndexedDB
   const [isCapturing, setIsCapturing] = useState(false);
@@ -28,7 +27,7 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
     getAllPhotos().then((photos) => setPhotoCount(photos.length));
   }, []);
 
-  const shotsRemaining = photoCount === null ? null : SHOT_LIMIT - photoCount;
+  const shotsRemaining = photoCount === null ? null : shotLimit - photoCount;
   const limitReached = shotsRemaining !== null && shotsRemaining <= 0;
 
   async function handleCapture() {
@@ -110,7 +109,7 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
 
         {limitReached && status === 'ready' && (
           <div className="absolute inset-0 flex items-center justify-center bg-black/70 px-6 text-center">
-            You&apos;ve used all {SHOT_LIMIT} of your shots.
+            You&apos;ve used all {shotLimit} of your shots.
           </div>
         )}
       </div>
