@@ -5,12 +5,10 @@ import { getDeviceInfo } from '@/lib/indexeddb';
 import { RegistrationScreen } from '@/components/registration/RegistrationScreen';
 import { CameraScreen } from '@/components/camera/CameraScreen';
 
-// A single state value with one of three exact shapes - eliminates any
-// combination of variables that shouldn't be possible together.
 type AppState =
   | { status: 'checking' }
   | { status: 'unregistered'; deviceId: string }
-  | { status: 'registered'; displayName: string };
+  | { status: 'registered'; deviceId: string; displayName: string };
 
 export default function Home() {
   const [appState, setAppState] = useState<AppState>({ status: 'checking' });
@@ -20,7 +18,11 @@ export default function Home() {
       const existing = await getDeviceInfo();
 
       if (existing) {
-        setAppState({ status: 'registered', displayName: existing.displayName });
+        setAppState({
+          status: 'registered',
+          deviceId: existing.deviceId,
+          displayName: existing.displayName,
+        });
       } else {
         setAppState({ status: 'unregistered', deviceId: crypto.randomUUID() });
       }
@@ -37,12 +39,12 @@ export default function Home() {
     return (
       <RegistrationScreen
         deviceId={appState.deviceId}
-        onComplete={(name) => setAppState({ status: 'registered', displayName: name })}
+        onComplete={(name) =>
+          setAppState({ status: 'registered', deviceId: appState.deviceId, displayName: name })
+        }
       />
     );
   }
 
-  // TypeScript now knows appState.status is 'registered' here, so
-  // appState.displayName is guaranteed to be a string — no ambiguity.
-  return <CameraScreen displayName={appState.displayName} />;
+  return <CameraScreen deviceId={appState.deviceId} displayName={appState.displayName} />;
 }
