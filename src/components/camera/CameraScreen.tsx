@@ -5,8 +5,10 @@ import { useCamera } from '@/lib/useCamera';
 import { compressImage } from '@/lib/compressImage';
 import { savePhoto, getAllPhotos } from '@/lib/indexeddb';
 import { processUploadQueue } from '@/lib/uploadQueue';
+import { GalleryBottomSheet } from '@/components/gallery/GalleryBottomSheet';
+import { GalleryButton } from '../gallery/GalleryButton';
 
-const SHOT_LIMIT = 5; // will move to server-driven config in a later milestone
+const SHOT_LIMIT = 5;
 
 interface CameraScreenProps {
   deviceId: string;
@@ -17,6 +19,8 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
   const { videoRef, status, switchCamera, capturePhoto } = useCamera();
   const [photoCount, setPhotoCount] = useState<number | null>(null); // null = still loading from IndexedDB
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0); // bumped to signal gallery should reload
 
   // Load however many photos this device already has, on mount -
   // covers the case where the user reloads mid-session.
@@ -39,7 +43,6 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
       }
 
       const compressedBlob = await compressImage(rawBlob);
-
       const shotNumber = photoCount + 1;
       const fileName = `${displayName}-${String(shotNumber).padStart(3, '0')}.jpg`;
 
@@ -57,12 +60,9 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
       });
 
       setPhotoCount(shotNumber);
+      setRefreshKey((k) => k + 1); // let an open gallery pick up the new photo immediately
 
-      // Kick off upload in the background - deliberately not awaited,
-      // so the capture button re-enables immediately. Reliability comes
-      // from the photo already being safely in IndexedDB, not from
-      // waiting on the network here.
-      processUploadQueue();
+      processUploadQueue().then(() => setRefreshKey((k) => k + 1)); // refresh again once upload settles
     } finally {
       setIsCapturing(false);
     }
@@ -116,10 +116,9 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
       </div>
 
       <div className="flex items-center justify-between px-8 py-6">
-        <button
-          disabled
-          className="h-10 w-10 rounded-full bg-gray-800 opacity-50"
-          aria-label="Gallery (coming in Milestone 7)"
+        <GalleryButton
+          onClick={() => setIsGalleryOpen(true)}
+          refreshKey={refreshKey}
         />
 
         <button
@@ -138,6 +137,13 @@ export function CameraScreen({ deviceId, displayName }: CameraScreenProps) {
           ↺
         </button>
       </div>
+
+      <GalleryBottomSheet
+        isOpen={isGalleryOpen}
+        onClose={() => setIsGalleryOpen(false)}
+        refreshKey={refreshKey}
+        onPhotosChanged={() => setRefreshKey((k) => k + 1)}
+      />
     </div>
   );
 }
