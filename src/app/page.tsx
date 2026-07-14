@@ -1,56 +1,48 @@
-// The single-page app entry point. Right now it just decides: has this
-// device registered before? If not, show the registration screen.
-// If yes, skip straight to the camera - which is still a placeholder
-// until Milestone 4.
-
 'use client';
 
 import { useEffect, useState } from 'react';
 import { getDeviceInfo } from '@/lib/indexeddb';
 import { RegistrationScreen } from '@/components/registration/RegistrationScreen';
+import { CameraScreen } from '@/components/camera/CameraScreen';
+
+// A single state value with one of three exact shapes - eliminates any
+// combination of variables that shouldn't be possible together.
+type AppState =
+  | { status: 'checking' }
+  | { status: 'unregistered'; deviceId: string }
+  | { status: 'registered'; displayName: string };
 
 export default function Home() {
-  // null = still checking IndexedDB, undefined = checked, not registered,
-  // string = checked, registered (holds the display name)
-  const [displayName, setDisplayName] = useState<string | null | undefined>(null);
-  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const [appState, setAppState] = useState<AppState>({ status: 'checking' });
 
   useEffect(() => {
     async function checkRegistration() {
       const existing = await getDeviceInfo();
 
       if (existing) {
-        // Returning device - skip registration entirely.
-        setDisplayName(existing.displayName);
+        setAppState({ status: 'registered', displayName: existing.displayName });
       } else {
-        // Brand new device - generate its permanent ID now.
-        // crypto.randomUUID() is built into modern browsers, no library needed.
-        setDeviceId(crypto.randomUUID());
-        setDisplayName(undefined);
+        setAppState({ status: 'unregistered', deviceId: crypto.randomUUID() });
       }
     }
 
     checkRegistration();
   }, []);
 
-  // Still checking IndexedDB - avoid flashing the registration screen
-  // for returning users while this resolves (should only take milliseconds).
-  if (displayName === null) {
+  if (appState.status === 'checking') {
     return <div className="h-dvh bg-black" />;
   }
 
-  // Not registered yet - show the name entry screen.
-  if (displayName === undefined && deviceId) {
+  if (appState.status === 'unregistered') {
     return (
-      <RegistrationScreen deviceId={deviceId} onComplete={(name) => setDisplayName(name)} />
+      <RegistrationScreen
+        deviceId={appState.deviceId}
+        onComplete={(name) => setAppState({ status: 'registered', displayName: name })}
+      />
     );
   }
 
-  // Registered - camera goes here starting Milestone 4.
-  return (
-    <div className="flex h-dvh flex-col items-center justify-center bg-black text-white">
-      <p>Welcome back, {displayName}!</p>
-      <p className="mt-2 text-sm text-gray-400">Camera coming in Milestone 4.</p>
-    </div>
-  );
+  // TypeScript now knows appState.status is 'registered' here, so
+  // appState.displayName is guaranteed to be a string — no ambiguity.
+  return <CameraScreen displayName={appState.displayName} />;
 }

@@ -19,7 +19,7 @@ interface CameraDB extends DBSchema {
 }
 
 const DB_NAME = 'disposable-event-camera';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Opens (or creates, on first call) the IndexedDB database.
 // We call this fresh each time rather than caching the connection,
@@ -27,10 +27,17 @@ const DB_VERSION = 1;
 // code simple - no need to worry about stale connections.
 function getDB() {
   return openDB<CameraDB>(DB_NAME, DB_VERSION, {
-    upgrade(db) {
-      // Runs only once, when the database is first created on this device,
-      // or when DB_VERSION is bumped in a future milestone.
-      db.createObjectStore('device');
+    upgrade(db, oldVersion) {
+      // Runs once per version bump, on whichever version the device is
+      // currently at. Each `if` only creates what's missing, so this
+      // works whether a device is on version 0 (brand new) or 1
+      // (registered before this milestone).
+      if (oldVersion < 1) {
+        db.createObjectStore('device');
+      }
+      if (oldVersion < 2) {
+        db.createObjectStore('preferences');
+      }
     },
   });
 }
@@ -47,4 +54,35 @@ export async function getDeviceInfo() {
 export async function saveDeviceInfo(deviceId: string, displayName: string) {
   const db = await getDB();
   await db.put('device', { deviceId, displayName }, 'info');
+}
+
+// (Add 'cameraFacing' to the CameraDB interface, alongside 'device')
+interface CameraDB extends DBSchema {
+  device: {
+    key: string;
+    value: {
+      deviceId: string;
+      displayName: string;
+    };
+  };
+  preferences: {
+    key: string; // always "camera"
+    value: {
+      facingMode: 'user' | 'environment'; // 'user' = front, 'environment' = rear
+    };
+  };
+}
+
+// Reads the last camera the user selected (front/rear).
+// Returns undefined if they've never switched cameras before.
+export async function getCameraPreference() {
+  const db = await getDB();
+  const pref = await db.get('preferences', 'camera');
+  return pref?.facingMode;
+}
+
+// Saves which camera (front/rear) the user last selected.
+export async function saveCameraPreference(facingMode: 'user' | 'environment') {
+  const db = await getDB();
+  await db.put('preferences', { facingMode }, 'camera');
 }
