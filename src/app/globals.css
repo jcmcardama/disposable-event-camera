@@ -25,16 +25,13 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* iOS Safari renders the datetime-local picker icon at a position based
-   on the input's computed content width, which can push it outside the
-   input's visible box on narrow (phone) viewports. Pinning the icon's
-   position explicitly, and reserving padding for it, avoids that -
-   this only affects WebKit/Safari; other browsers ignore these rules. */
-input[type='datetime-local']::-webkit-calendar-picker-indicator {
-  display: none;
-  -webkit-appearance: none;
-}
-
+/* iOS Safari renders datetime-local via internal shadow-DOM segments and
+   has a long-standing bug where width: 100% is silently ignored unless
+   display: block is also set. Without this, the control's true content
+   width can exceed its container regardless of any container/icon CSS. */
 input[type='datetime-local'] {
-  padding-right: 0.75rem; /* no longer need to reserve space for the icon */
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }

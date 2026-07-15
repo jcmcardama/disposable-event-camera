@@ -84,7 +84,7 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
         </div>
       )}
 
-      <div className="relative flex-1 overflow-hidden bg-gray-900">
+      <div className="relative flex-1 overflow-hidden bg-gray-900 touch-none">
         <video
           ref={videoRef}
           autoPlay
