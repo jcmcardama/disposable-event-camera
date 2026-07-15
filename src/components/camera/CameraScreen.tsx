@@ -7,6 +7,7 @@ import { savePhoto, getAllPhotos } from '@/lib/indexeddb';
 import { processUploadQueue } from '@/lib/uploadQueue';
 import { GalleryBottomSheet } from '@/components/gallery/GalleryBottomSheet';
 import { GalleryButton } from '../gallery/GalleryButton';
+import { useOnlineStatus } from '@/lib/useOnlineStatus';
 
 interface CameraScreenProps {
   deviceId: string;
@@ -20,6 +21,7 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
   const [isCapturing, setIsCapturing] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0); // bumped to signal gallery should reload
+  const isOnline = useOnlineStatus();
 
   // Load however many photos this device already has, on mount -
   // covers the case where the user reloads mid-session.
@@ -75,6 +77,12 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
           {shotsRemaining === null ? '—' : `${shotsRemaining} shots left`}
         </span>
       </div>
+      {!isOnline && (
+        <div className="bg-yellow-600 px-4 py-2 text-center text-sm text-black">
+          You&apos;re offline. Photos will keep saving and upload automatically
+          once you&apos;re back online.
+        </div>
+      )}
 
       <div className="relative flex-1 overflow-hidden bg-gray-900">
         <video
