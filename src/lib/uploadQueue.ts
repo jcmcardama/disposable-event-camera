@@ -8,6 +8,7 @@ import { getAllPhotos, updatePhotoStatus, updatePhotoServerInfo, getDeviceInfo }
 const BACKOFF_DELAYS_MS = [5000, 15000, 30000, 60000];
 
 let isProcessing = false;
+let rerunQueued = false;
 
 // Attempts to re-register this device using its cached local identity.
 // Used when the server reports "Unknown device" - meaning the device
@@ -91,14 +92,25 @@ async function uploadWithRetry(photo: Awaited<ReturnType<typeof getAllPhotos>>[n
 }
 
 export async function processUploadQueue() {
-  if (isProcessing) return;
-  isProcessing = true;
+  if (isProcessing) {
+    // A run is already in progress. Rather than dropping this trigger
+    // entirely (the previous bug - a capture or reconnect happening
+    // mid-run could get silently ignored forever), remember that
+    // something changed so we immediately run again once the current
+    // pass finishes, instead of waiting for some unrelated future
+    // event to accidentally catch it.
+    rerunQueued = true;
+    return;
+  }
 
+  isProcessing = true;
   try {
-    const photos = await getAllPhotos();
-    const needsUpload = photos.filter(
-      (p) => p.status === 'pending' || p.status === 'failed' || p.status === 'uploading'
-    );
+    do {
+      rerunQueued = false;
+      const photos = await getAllPhotos();
+      const needsUpload = photos.filter(
+        (p) => p.status === 'pending' || p.status === 'failed' || p.status === 'uploading'
+      );
 
     // Run all of this device's pending uploads concurrently rather than
     // one at a time. Previously, one photo stuck in a backoff retry
@@ -109,7 +121,8 @@ export async function processUploadQueue() {
     // already makes concurrent shot-number claims safe.
     // allSettled (not all) so one photo's unexpected failure can never
     // prevent the others from being attempted.
-    await Promise.allSettled(needsUpload.map((photo) => uploadWithRetry(photo)));
+      await Promise.allSettled(needsUpload.map((photo) => uploadWithRetry(photo)));
+    } while (rerunQueued);
   } finally {
     isProcessing = false;
   }
