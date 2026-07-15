@@ -71,6 +71,33 @@ export default function Home() {
     return () => clearInterval(interval);
   }, [isEventClosed]);
 
+  useEffect(() => {
+    // Two separate signals that the upload queue might need to resume:
+    // 'online' fires on genuine reconnect; 'visibilitychange' fires when
+    // the tab returns to foreground after being backgrounded (which can
+    // pause in-flight backoff timers even without connectivity changing).
+    // Merged into one effect since they're conceptually the same
+    // response - "something changed, give the queue another chance" -
+    // just triggered by two different browser events.
+    function handleOnline() {
+      processUploadQueue();
+    }
+
+    function handleVisibilityChange() {
+      if (document.visibilityState === 'visible') {
+        processUploadQueue();
+      }
+    }
+
+    window.addEventListener('online', handleOnline);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, []);
+
   if (appState.status === 'checking' || eventStatus === null) {
     return (
       <div className="flex h-dvh items-center justify-center bg-black">
