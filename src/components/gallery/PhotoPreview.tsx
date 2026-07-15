@@ -8,6 +8,7 @@ import { useRef, useState } from 'react';
 import { deletePhotoLocal, getAllPhotos } from '@/lib/indexeddb';
 import { processUploadQueue } from '@/lib/uploadQueue';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { useObjectUrl } from '@/lib/useObjectUrl';
 
 type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
@@ -41,6 +42,7 @@ export function PhotoPreview({
   const [isRetrying, setIsRetrying] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const touchStartX = useRef<number | null>(null);
+  const imageUrl = useObjectUrl(photo.blob);
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -101,12 +103,10 @@ export function PhotoPreview({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note */}
-        <img
-          src={URL.createObjectURL(photo.blob)}
-          alt={photo.fileName}
-          className="max-h-full max-w-full object-contain"
-        />
+        {imageUrl && (
+          // eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note
+          <img src={imageUrl} alt={photo.fileName} className="max-h-full max-w-full object-contain" />
+        )}
 
         {hasPrevious && (
           <button

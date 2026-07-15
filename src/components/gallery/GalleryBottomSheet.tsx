@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAllPhotos } from '@/lib/indexeddb';
 import { PhotoPreview } from './PhotoPreview';
+import { useObjectUrl } from '@/lib/useObjectUrl';
 
 type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
@@ -24,6 +25,23 @@ function StatusDot({ status }: { status: LocalPhoto['status'] }) {
         : 'bg-yellow-500'; // pending or uploading
 
   return <span className={`absolute right-1 top-1 h-2.5 w-2.5 rounded-full ${color}`} />;
+}
+
+function Thumbnail({ photo, onClick }: { photo: LocalPhoto; onClick: () => void }) {
+  const imageUrl = useObjectUrl(photo.blob);
+
+  return (
+    <button
+      onClick={onClick}
+      className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-800"
+    >
+      {imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note
+        <img src={imageUrl} alt={photo.fileName} className="h-full w-full object-cover" />
+      )}
+      <StatusDot status={photo.status} />
+    </button>
+  );
 }
 
 export function GalleryBottomSheet({ isOpen, onClose, refreshKey, onPhotosChanged }: GalleryBottomSheetProps) {
@@ -52,19 +70,7 @@ export function GalleryBottomSheet({ isOpen, onClose, refreshKey, onPhotosChange
         ) : (
           <div className="flex gap-3 overflow-x-auto px-4">
             {photos.map((photo, index) => (
-              <button
-                key={photo.localId}
-                onClick={() => setPreviewIndex(index)}
-                className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-800"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note */}
-                <img
-                  src={URL.createObjectURL(photo.blob)}
-                  alt={photo.fileName}
-                  className="h-full w-full object-cover"
-                />
-                <StatusDot status={photo.status} />
-              </button>
+              <Thumbnail key={photo.localId} photo={photo} onClick={() => setPreviewIndex(index)} />
             ))}
           </div>
         )}
