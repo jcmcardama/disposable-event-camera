@@ -6,6 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { getAllPhotos } from '@/lib/indexeddb';
+import { useObjectUrl } from '@/lib/useObjectUrl';
 
 interface GalleryButtonProps {
   onClick: () => void;
@@ -13,42 +14,23 @@ interface GalleryButtonProps {
 }
 
 export function GalleryButton({ onClick, refreshKey }: GalleryButtonProps) {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+  const [latestBlob, setLatestBlob] = useState<Blob | null>(null);
+  const thumbnailUrl = useObjectUrl(latestBlob);
 
   useEffect(() => {
-    let objectUrl: string | null = null;
-
-    async function loadThumbnail() {
-      const photos = await getAllPhotos();
-      if (photos.length === 0) {
-        setThumbnailUrl(null);
-        return;
-      }
-      // getAllPhotos returns photos sorted by shotNumber ascending, so
-      // the last item is the most recently taken shot.
-      const mostRecent = photos[photos.length - 1];
-      objectUrl = URL.createObjectURL(mostRecent.blob);
-      setThumbnailUrl(objectUrl);
-    }
-
-    loadThumbnail();
-
-    // Revoke the object URL when a newer one replaces it (or on unmount),
-    // so we're not leaking memory as the user keeps capturing.
-    return () => {
-      if (objectUrl) URL.revokeObjectURL(objectUrl);
-    };
+    getAllPhotos().then((photos) => {
+      setLatestBlob(photos.length > 0 ? photos[photos.length - 1].blob : null);
+    });
   }, [refreshKey]);
 
   return (
     <button
       onClick={onClick}
-      className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-600 bg-gray-800 disabled:opacity-50"
+      className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-600 bg-gray-800"
       aria-label="Open gallery"
     >
       {thumbnailUrl && (
-        // for a locally captured photo; see note in GalleryBottomSheet.
-        // eslint-disable-next-line @next/next/no-img-element -- blob: URL
+        // eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note
         <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
       )}
     </button>

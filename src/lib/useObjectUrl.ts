@@ -6,32 +6,18 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
 export function useObjectUrl(blob: Blob | null | undefined): string | null {
-  // 1. Hooks are declared at the very top, unconditionally
-  const [prevBlob, setPrevBlob] = useState<Blob | null | undefined>(null);
-  const [url, setUrl] = useState<string | null>(null);
+  // Derived directly during render - the URL is purely a function of
+  // the blob, so no setState is needed to "store" it.
+  const url = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
 
-  // 2. Sync state during the render phase (fully supported by React for prop-syncing)
-  if (blob !== prevBlob) {
-    setPrevBlob(blob);
-    
-    // Revoke the old URL immediately to prevent memory leaks
-    if (url) {
-      URL.revokeObjectURL(url);
-    }
-    
-    // Generate the new URL or reset to null
-    setUrl(blob ? URL.createObjectURL(blob) : null);
-  }
-
-  // 3. Handle cleanup when the hook finally unmounts
   useEffect(() => {
+    // The effect here only handles cleanup (revoking the previous URL
+    // when blob changes, or on unmount) - it never calls setState.
     return () => {
-      if (url) {
-        URL.revokeObjectURL(url);
-      }
+      if (url) URL.revokeObjectURL(url);
     };
   }, [url]);
 
