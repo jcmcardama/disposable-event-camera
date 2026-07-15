@@ -24,14 +24,3 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
-
-/* iOS Safari renders datetime-local via internal shadow-DOM segments and
-   has a long-standing bug where width: 100% is silently ignored unless
-   display: block is also set. Without this, the control's true content
-   width can exceed its container regardless of any container/icon CSS. */
-input[type='datetime-local'] {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
-}

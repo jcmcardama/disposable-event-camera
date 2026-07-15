@@ -4,8 +4,8 @@
 // reliable uploads on event WiFi) without visible quality loss on
 // a phone screen.
 
-const MAX_DIMENSION = 1600;
-const JPEG_QUALITY = 0.8;
+const MAX_DIMENSION = 2048;
+const JPEG_QUALITY = 0.9;
 
 export async function compressImage(blob: Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(blob);
