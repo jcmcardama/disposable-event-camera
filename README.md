@@ -1,36 +1,161 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Disposable Event Camera
 
-## Getting Started
+A mobile-first, single-page web app that simulates a disposable film camera for a one-day event. Guests scan a QR code, enter their name once, and get a fixed number of shots — no accounts, no app installs, no fuss. Every photo is saved to the guest's device the instant it's captured and uploaded automatically in the background, so nothing is ever lost to a bad WiFi connection.
 
-First, run the development server:
+🔗 **Live App:** disposable-event-camera.vercel.app
+
+---
+
+## 🚀 Project Overview
+
+Built to feel like handing someone a real disposable camera at a wedding, party, or gathering — point, shoot, done. No login screens, no app store detours, just a QR code and a camera.
+
+- **Zero-friction guest experience** — one QR code, one name entry, straight into the camera. No accounts, no passwords, no app installs.
+- **Reliability-first architecture** — every photo is compressed and saved locally (IndexedDB) *before* anything else happens. A bad connection, a locked phone, or a closed tab can never lose a captured photo.
+- **Server-authoritative shot limits** — the 5-shots-per-device rule (configurable) is enforced by the database itself via an atomic Postgres function, not just trusted client-side logic.
+- **Automatic background uploads** — photos upload themselves with exponential backoff retry, resuming automatically on reconnect, on app reopen, or on the next page load. No "upload" button, ever.
+- **Full admin control** — a password-protected dashboard to open/close the event window, adjust the shot limit, monitor upload health, and reset individual devices or the whole event.
+
+## 🛠️ Tech Stack
+
+- **Next.js** (App Router) + **TypeScript**
+- **TailwindCSS**
+- **Supabase** — Postgres database, Storage (photos), Row Level Security
+- **IndexedDB** (via the `idb` library) — local photo persistence and device identity
+- **Browser Camera API** (`getUserMedia`) — no native camera app, no third-party SDK
+- **Vercel** — hosting and deployment
+
+## 📁 Project Structure
+
+```
+src/
+├── app/
+│   ├── page.tsx                  # Guest entry point: registration → event status → camera
+│   ├── admin/
+│   │   ├── page.tsx               # Admin login
+│   │   └── error.tsx              # Admin-specific error boundary
+│   ├── error.tsx                  # Guest-facing global error boundary
+│   └── api/
+│       ├── register/route.ts       # Device registration (upsert)
+│       ├── upload/route.ts         # Photo upload: claims shot number, uploads, records
+│       ├── event-status/route.ts    # Event open/closed status for the client
+│       ├── health/route.ts          # Database / Storage / config health check
+│       └── admin/
+│           ├── login/route.ts
+│           ├── session/route.ts
+│           ├── settings/route.ts     # GET/PATCH event_settings
+│           ├── stats/route.ts
+│           ├── reset-device/route.ts
+│           └── reset-event/route.ts
+├── components/
+│   ├── camera/CameraScreen.tsx     # Main single-screen camera UI
+│   ├── gallery/                    # Bottom-sheet gallery + fullscreen preview
+│   ├── registration/RegistrationScreen.tsx
+│   ├── event/EventClosedScreen.tsx
+│   ├── admin/AdminDashboard.tsx
+│   └── shared/                     # ConfirmDialog, Spinner
+├── lib/
+│   ├── supabase/{client,server}.ts  # Separate browser/server Supabase clients
+│   ├── indexeddb.ts                 # Local device identity, prefs, and photo storage
+│   ├── useCamera.ts                 # getUserMedia lifecycle + frame capture
+│   ├── compressImage.ts             # Resize + JPEG compression before save/upload
+│   ├── uploadQueue.ts                # Background upload with backoff retry
+│   ├── eventStatus.ts                # Single source of truth for open/closed + shot limit
+│   ├── adminAuth.ts / requireAdmin.ts
+│   └── useOnlineStatus.ts / useObjectUrl.ts
+└── types/index.ts                   # Shared types mirroring the database schema
+```
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js v18 or higher
+- A free [Supabase](https://supabase.com) account and project
+- A free [Vercel](https://vercel.com) account (for deployment)
+
+### Local Installation
+
+```bash
+git clone https://github.com/jcmcardama/disposable-event-camera.git
+cd disposable-event-camera
+npm install
+```
+
+### Supabase Setup
+
+1. Create a new Supabase project.
+2. In the **SQL Editor**, run the schema (tables + RLS + the atomic shot-increment function) — see [`/docs/schema.sql`](./docs/schema.sql) for the full script.
+3. Create a **private** Storage bucket named `event-photos`.
+4. Under **Settings → Data API**, grab your Project URL. Under **Settings → API Keys**, grab your **Publishable** and **Secret** keys.
+
+### Environment Variables
+
+Create `.env.local` in the project root:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=your-project-url-here
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-publishable-key-here
+SUPABASE_SERVICE_ROLE_KEY=your-secret-key-here
+ADMIN_PASSWORD=choose-a-strong-password-here
+```
+
+### Run locally
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The app is available at `http://localhost:3000`, and the admin dashboard at `http://localhost:3000/admin`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+> **Note:** `getUserMedia` (the camera API) requires a secure context. `localhost` is exempt, but testing on a real phone requires either a deployed HTTPS URL or a local HTTPS tunnel.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📸 How to Use
 
-## Learn More
+### As a guest
 
-To learn more about Next.js, take a look at the following resources:
+1. Scan the event QR code (which just points to the deployed URL).
+2. Enter your name — this happens once per device.
+3. If the event hasn't started yet, you'll see a waiting screen that automatically opens the moment the window begins — no need to reload.
+4. Tap the shutter to capture. Switch between front/rear camera with the flip button.
+5. Open the gallery (bottom-left) to review, download, delete, or manually retry a failed upload for any of your shots. Swipe or use the arrow buttons to move between photos.
+6. Once your shots are used, you'll see a "shots used" message — deleting a photo does **not** give you another shot back.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### As the host/admin
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. Go to `/admin` and log in with your `ADMIN_PASSWORD`.
+2. **Event Controls** — toggle the event on/off, set the start/end window, and adjust the shot limit.
+3. **Upload Statistics** — live counts of devices, total photos, and upload status breakdown.
+4. **Health Check** — confirms database, storage, and configuration are all reachable.
+5. **Reset** — clear a single misbehaving device (by UUID, visible in Supabase's Table Editor) or wipe the entire event's devices and photos before/after a run-through.
 
-## Deploy on Vercel
+## 🌍 Deploying Your Own Copy
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is built to be forked and reused for your own event:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Fork/clone the repo and follow the Supabase setup above with your **own** Supabase project.
+2. Deploy to Vercel — import the repo, add the four environment variables from `.env.local` under **Project Settings → Environment Variables**, and deploy.
+3. Generate a QR code pointing at your deployed `*.vercel.app` URL (or a custom domain) and print it for your event.
+4. Log into `/admin` and configure your event's start/end time and shot limit before doors open.
+
+**A note on hosting costs:** both Vercel's Hobby plan and Supabase's free tier are intended for personal, non-commercial projects — which comfortably covers a one-day personal event at the scale this was built and tested for (~50 devices × 5 shots). If you're reusing this for something commercial or at significantly larger scale, review both platforms' current terms and pricing first.
+
+## ⚠️ Limitations
+
+- **Single event at a time** — `event_settings` is a singleton table by design; this isn't built for running multiple concurrent events on one deployment.
+- **No guest accounts, by design** — a device is identified only by a UUID stored in its browser's IndexedDB. Clearing site data / using a private/incognito window resets that identity, which means someone can technically get more than their allotted shots by doing so repeatedly. Acceptable for a casual personal event; not intended as an abuse-proof system.
+- **Private Browsing mode is not supported** — the app's reliability model depends on persistent local storage (IndexedDB), which browsers — Safari in particular — severely restrict or disable in private/incognito windows. Guests should use normal browsing mode.
+- **iOS Safari cannot disable pinch-to-zoom** — this is a deliberate accessibility decision by Apple (since iOS 10), not a limitation of this app; it applies to any website, not just this one.
+- **Admin date/time inputs render inconsistently on iOS Safari** — a known, long-standing Safari rendering quirk with `datetime-local` inputs. Functionally the settings still save correctly; it's a cosmetic issue on the admin dashboard only, and the admin dashboard is not guest-facing.
+- **Storage cleanup is manual** — resetting a device or the whole event clears database records but intentionally does **not** delete the corresponding files from Supabase Storage, to avoid an irreversible action being bundled into a routine reset. Clear the Storage bucket manually via the Supabase dashboard if needed.
+
+## 📝 Available Scripts
+
+- `npm run dev` — start the development server
+- `npm run build` — production build
+- `npm start` — run the production build
+- `npm run lint` — run ESLint
+
+---
+
+Made with ❤️ by Jan Carlo M. Cardama
