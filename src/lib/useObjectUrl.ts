@@ -6,20 +6,34 @@
 
 'use client';
 
-import { useEffect, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 
 export function useObjectUrl(blob: Blob | null | undefined): string | null {
-  // Derived directly during render - the URL is purely a function of
-  // the blob, so no setState is needed to "store" it.
-  const url = useMemo(() => (blob ? URL.createObjectURL(blob) : null), [blob]);
+  const [url, setUrl] = useState<string | null>(null);
 
   useEffect(() => {
-    // The effect here only handles cleanup (revoking the previous URL
-    // when blob changes, or on unmount) - it never calls setState.
+    if (!blob) {
+      // this mirrors the same justification as the create
+      // branch, just for the "no blob" case.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(blob);
+
+    // an object URL is a genuine side effect (it allocates a browser
+    // resource that needs a matching revoke), not a value derivable
+    // from props - this is exactly the "synchronize with an external
+    // system" case effects exist for. useMemo was tried first and is
+    // wrong here: it doesn't re-run in lockstep with Strict Mode's
+    // double effect invocation, which caused stale/revoked URLs.
+    setUrl(objectUrl);
+
     return () => {
-      if (url) URL.revokeObjectURL(url);
+      URL.revokeObjectURL(objectUrl);
     };
-  }, [url]);
+  }, [blob]);
 
   return url;
 }
