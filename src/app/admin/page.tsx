@@ -1,13 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true); // avoids flashing the login form while we check
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/admin/session')
+      .then((r) => r.json())
+      .then((data) => setIsAuthenticated(data.authenticated))
+      .finally(() => setIsCheckingSession(false));
+  }, []);
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +38,10 @@ export default function AdminPage() {
     } finally {
       setIsSubmitting(false);
     }
+  }
+
+  if (isCheckingSession) {
+    return <div className="h-dvh bg-gray-950" />;
   }
 
   if (isAuthenticated) {
