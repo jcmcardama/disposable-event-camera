@@ -6,6 +6,7 @@ import { RegistrationScreen } from '@/components/registration/RegistrationScreen
 import { CameraScreen } from '@/components/camera/CameraScreen';
 import { EventClosedScreen } from '@/components/event/EventClosedScreen';
 import { processUploadQueue } from '@/lib/uploadQueue';
+import { Spinner } from '@/components/shared/Spinner';
 
 type EventStatus =
 | { isOpen: true; reason: 'open'; eventStart: string; eventEnd: string; shotLimit: number }
@@ -25,6 +26,11 @@ type AppState =
 export default function Home() {
   const [appState, setAppState] = useState<AppState>({ status: 'checking' });
   const [eventStatus, setEventStatus] = useState<EventStatus | null>(null);
+
+  // Derived once per render - the effect below only reads this, never
+  // eventStatus directly, so its dependency array can stay narrow
+  // without triggering exhaustive-deps warnings.
+  const isEventClosed = eventStatus !== null && !eventStatus.isOpen;
 
   useEffect(() => {
     async function init() {
@@ -50,8 +56,27 @@ export default function Home() {
     processUploadQueue();
   }, []);
 
+  useEffect(() => {
+    if (!isEventClosed) return;
+
+    // Re-check event status periodically while closed, so the app opens
+    // itself automatically once the event window starts - no manual
+    // reload needed. 30s is frequent enough to feel responsive without
+    // hammering the endpoint.
+    const interval = setInterval(async () => {
+      const statusResponse = await fetch('/api/event-status').then((r) => r.json());
+      setEventStatus(statusResponse);
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isEventClosed]);
+
   if (appState.status === 'checking' || eventStatus === null) {
-    return <div className="h-dvh bg-black" />;
+    return (
+      <div className="flex h-dvh items-center justify-center bg-black">
+        <Spinner />
+      </div>
+    );
   }
 
   // Registration is still allowed even if the event is closed - a guest

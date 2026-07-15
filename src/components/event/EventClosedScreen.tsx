@@ -2,6 +2,8 @@
 // covers all three closed states from the spec: not yet enabled by
 // admin, before the start time, and after the end time.
 
+import { Spinner } from '@/components/shared/Spinner';
+
 interface EventClosedScreenProps {
   reason: 'disabled' | 'before-start' | 'after-end';
   eventStart: string;
@@ -14,11 +16,14 @@ const MESSAGES: Record<EventClosedScreenProps['reason'], string> = {
 };
 
 export function EventClosedScreen({ reason, eventStart }: EventClosedScreenProps) {
+  const isWaiting = reason === 'disabled' || reason === 'before-start';
+
   return (
-    <div className="flex h-dvh flex-col items-center justify-center bg-black px-6 text-center text-white">
+    <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
+      {isWaiting && <Spinner />}
       <p className="text-lg">{MESSAGES[reason]}</p>
       {reason === 'before-start' && (
-        <p className="mt-2 text-sm text-gray-400">
+        <p className="text-sm text-gray-400">
           Starts at {new Date(eventStart).toLocaleTimeString()}
         </p>
       )}
