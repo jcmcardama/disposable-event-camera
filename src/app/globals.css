@@ -24,3 +24,20 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* iOS Safari renders the datetime-local picker icon at a position based
+   on the input's computed content width, which can push it outside the
+   input's visible box on narrow (phone) viewports. Pinning the icon's
+   position explicitly, and reserving padding for it, avoids that -
+   this only affects WebKit/Safari; other browsers ignore these rules. */
+input[type='datetime-local'] {
+  position: relative;
+  padding-right: 2.5rem;
+}
+
+input[type='datetime-local']::-webkit-calendar-picker-indicator {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
