@@ -100,9 +100,16 @@ export async function processUploadQueue() {
       (p) => p.status === 'pending' || p.status === 'failed' || p.status === 'uploading'
     );
 
-    for (const photo of needsUpload) {
-      await uploadWithRetry(photo);
-    }
+    // Run all of this device's pending uploads concurrently rather than
+    // one at a time. Previously, one photo stuck in a backoff retry
+    // (up to ~110s) blocked every other photo behind it in the queue -
+    // for a max of 5 photos on ONE device, that's not meaningfully
+    // harder on the network than any other page loading a few images,
+    // and the atomic increment_shots_used() function on the server
+    // already makes concurrent shot-number claims safe.
+    // allSettled (not all) so one photo's unexpected failure can never
+    // prevent the others from being attempted.
+    await Promise.allSettled(needsUpload.map((photo) => uploadWithRetry(photo)));
   } finally {
     isProcessing = false;
   }
