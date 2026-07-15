@@ -3,17 +3,37 @@
 // time (not in parallel) - this keeps shot-number claiming naturally
 // ordered and avoids overwhelming event WiFi with concurrent uploads.
 
-import { getAllPhotos, updatePhotoStatus, updatePhotoServerInfo } from './indexeddb';
+import { getAllPhotos, updatePhotoStatus, updatePhotoServerInfo, getDeviceInfo } from './indexeddb';
 
-const BACKOFF_DELAYS_MS = [5000, 15000, 30000, 60000]; // 5s, 15s, 30s, 60s per spec
+const BACKOFF_DELAYS_MS = [5000, 15000, 30000, 60000];
 
 let isProcessing = false;
 
-// Uploads a single photo, retrying with backoff on failure.
-// Runs until it succeeds or exhausts the backoff schedule (after which
-// the photo is left as 'failed' for manual retry, per the spec).
+// Attempts to re-register this device using its cached local identity.
+// Used when the server reports "Unknown device" - meaning the device
+// row was deleted (testing, or an admin reset) but this browser still
+// thinks it's registered. Re-registering recreates the row so upload
+// can succeed; per the schema, this naturally starts shots_used fresh
+// at 0, which matches what "the device was reset" is supposed to mean.
+async function tryReRegisterDevice(deviceId: string): Promise<boolean> {
+  const localInfo = await getDeviceInfo();
+  if (!localInfo || localInfo.deviceId !== deviceId) return false;
+
+  try {
+    const response = await fetch('/api/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deviceId, displayName: localInfo.displayName }),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 async function uploadWithRetry(photo: Awaited<ReturnType<typeof getAllPhotos>>[number]) {
   await updatePhotoStatus(photo.localId, 'uploading');
+  let hasAttemptedReRegister = false;
 
   for (let attempt = 0; attempt <= BACKOFF_DELAYS_MS.length; attempt++) {
     try {
@@ -33,24 +53,33 @@ async function uploadWithRetry(photo: Awaited<ReturnType<typeof getAllPhotos>>[n
           serverShotNumber: result.shotNumber,
           fileName: result.fileName,
         });
-        return; // success - stop retrying
+        return;
       }
 
-      // Even on failure, the server may have returned a claimed
-      // shotNumber - save it so the next retry reuses it instead of
-      // claiming a new one.
       if (result.shotNumber) {
         await updatePhotoServerInfo(photo.localId, { serverShotNumber: result.shotNumber });
       }
 
       if (response.status === 403) {
-        // Shot limit reached server-side - retrying won't help, this
-        // is a real terminal failure, not a transient one.
+        // Shot limit reached - retrying can never help, terminal failure.
         await updatePhotoStatus(photo.localId, 'failed');
         return;
       }
+
+      if (response.status === 404 && result.error === 'Unknown device' && !hasAttemptedReRegister) {
+        // One-shot recovery attempt: re-register, then immediately retry
+        // this same iteration's upload rather than waiting out a full
+        // backoff delay for an error that backoff can't fix on its own.
+        hasAttemptedReRegister = true;
+        const reRegistered = await tryReRegisterDevice(photo.deviceId);
+        if (reRegistered) {
+          continue; // retry immediately, same attempt count, no delay
+        }
+        // Re-registration itself failed (e.g. still offline) - fall
+        // through to normal backoff and try again later.
+      }
     } catch {
-      // Network error (offline, etc.) - fall through to retry below.
+      // Network error - fall through to retry below.
     }
 
     if (attempt < BACKOFF_DELAYS_MS.length) {
@@ -58,27 +87,15 @@ async function uploadWithRetry(photo: Awaited<ReturnType<typeof getAllPhotos>>[n
     }
   }
 
-  // Exhausted all retries - mark failed, spec calls for manual retry
-  // to be available from here (wired up in the Milestone 7 gallery).
   await updatePhotoStatus(photo.localId, 'failed');
 }
 
-// Processes every pending or failed photo, one at a time, in shot
-// order. Safe to call multiple times - if already running, subsequent
-// calls are ignored (the running pass will naturally pick up anything
-// new since it re-reads from IndexedDB each time it starts).
 export async function processUploadQueue() {
   if (isProcessing) return;
   isProcessing = true;
 
   try {
     const photos = await getAllPhotos();
-    // 'uploading' is included here too - if a photo is in this state when
-    // processUploadQueue starts, it means a previous attempt was
-    // interrupted (page reload/crash) before it could resolve to
-    // 'uploaded' or 'failed'. Since isProcessing prevents this function
-    // from running twice concurrently, it's always safe to treat a
-    // leftover 'uploading' status as needing a fresh retry.
     const needsUpload = photos.filter(
       (p) => p.status === 'pending' || p.status === 'failed' || p.status === 'uploading'
     );
