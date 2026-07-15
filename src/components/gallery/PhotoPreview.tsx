@@ -4,7 +4,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { deletePhotoLocal, getAllPhotos } from '@/lib/indexeddb';
 import { processUploadQueue } from '@/lib/uploadQueue';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
@@ -13,6 +13,12 @@ type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
 interface PhotoPreviewProps {
   photo: LocalPhoto;
+  currentIndex: number;
+  totalPhotos: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
+  onNext: () => void;
+  onPrevious: () => void;
   onClose: () => void;
   onDeleted: () => void;
 }
@@ -24,10 +30,33 @@ const STATUS_LABEL: Record<LocalPhoto['status'], string> = {
   failed: 'Upload failed',
 };
 
-export function PhotoPreview({ photo, onClose, onDeleted }: PhotoPreviewProps) {
+// Minimum horizontal drag distance (px) to count as a deliberate swipe,
+// rather than an accidental small movement while tapping.
+const SWIPE_THRESHOLD = 50;
+
+export function PhotoPreview({
+  photo, currentIndex, totalPhotos, hasNext, hasPrevious, onNext, onPrevious, onClose, onDeleted,
+}: PhotoPreviewProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+
+  function handleTouchStart(e: React.TouchEvent) {
+    touchStartX.current = e.touches[0].clientX;
+  }
+
+  function handleTouchEnd(e: React.TouchEvent) {
+    if (touchStartX.current === null) return;
+    const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+
+    if (deltaX > SWIPE_THRESHOLD && hasPrevious) {
+      onPrevious(); // swiped right - go to previous photo
+    } else if (deltaX < -SWIPE_THRESHOLD && hasNext) {
+      onNext(); // swiped left - go to next photo
+    }
+  }
 
   async function performDelete() {
     setIsConfirmingDelete(false);
@@ -67,15 +96,48 @@ export function PhotoPreview({ photo, onClose, onDeleted }: PhotoPreviewProps) {
         </button>
       </div>
 
-      <div className="flex flex-1 items-center justify-center overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL for a
-            locally captured photo; next/image's optimizer can't fetch blob URLs,
-            so this rule's suggestion doesn't apply here. */}
+      <div
+        className="relative flex flex-1 items-center justify-center overflow-hidden touch-pan-y"
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note */}
         <img
           src={URL.createObjectURL(photo.blob)}
           alt={photo.fileName}
           className="max-h-full max-w-full object-contain"
         />
+
+        {hasPrevious && (
+          <button
+            onClick={onPrevious}
+            className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-2xl text-white"
+            aria-label="Previous photo"
+          >
+            ‹
+          </button>
+        )}
+
+        {hasNext && (
+          <button
+            onClick={onNext}
+            className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-2xl text-white"
+            aria-label="Next photo"
+          >
+            ›
+          </button>
+        )}
+
+        {totalPhotos >= 1 && (
+          <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-1.5">
+            {Array.from({ length: totalPhotos }).map((_, i) => (
+              <span
+                key={i}
+                className={`h-1.5 w-1.5 rounded-full ${i === currentIndex ? 'bg-white' : 'bg-white/40'}`}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="flex items-center justify-center gap-4 px-6 py-6">

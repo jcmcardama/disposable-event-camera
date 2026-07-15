@@ -28,7 +28,7 @@ function StatusDot({ status }: { status: LocalPhoto['status'] }) {
 
 export function GalleryBottomSheet({ isOpen, onClose, refreshKey, onPhotosChanged }: GalleryBottomSheetProps) {
   const [photos, setPhotos] = useState<LocalPhoto[]>([]);
-  const [previewPhoto, setPreviewPhoto] = useState<LocalPhoto | null>(null);
+  const [previewIndex, setPreviewIndex] = useState<number | null>(null);
 
   // Reload photos whenever the sheet opens or the parent signals a change
   // (new capture, delete, or upload status update).
@@ -42,7 +42,6 @@ export function GalleryBottomSheet({ isOpen, onClose, refreshKey, onPhotosChange
 
   return (
     <>
-      {/* Backdrop - tapping it closes the sheet, same as tapping the close area */}
       <div className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
 
       <div className="fixed inset-x-0 bottom-0 z-50 rounded-t-2xl bg-gray-900 pb-6 pt-4">
@@ -52,15 +51,13 @@ export function GalleryBottomSheet({ isOpen, onClose, refreshKey, onPhotosChange
           <p className="px-4 text-center text-sm text-gray-400">No photos yet.</p>
         ) : (
           <div className="flex gap-3 overflow-x-auto px-4">
-            {photos.map((photo) => (
+            {photos.map((photo, index) => (
               <button
                 key={photo.localId}
-                onClick={() => setPreviewPhoto(photo)}
+                onClick={() => setPreviewIndex(index)}
                 className="relative h-24 w-24 flex-shrink-0 overflow-hidden rounded-lg bg-gray-800"
               >
-                {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL for a
-                    locally captured photo; next/image's optimizer can't fetch blob URLs,
-                    so this rule's suggestion doesn't apply here. */}
+                {/* eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note */}
                 <img
                   src={URL.createObjectURL(photo.blob)}
                   alt={photo.fileName}
@@ -73,14 +70,20 @@ export function GalleryBottomSheet({ isOpen, onClose, refreshKey, onPhotosChange
         )}
       </div>
 
-      {previewPhoto && (
+      {previewIndex !== null && photos[previewIndex] && (
         <PhotoPreview
-          photo={previewPhoto}
-          onClose={() => setPreviewPhoto(null)}
+          photo={photos[previewIndex]}
+          currentIndex={previewIndex}
+          totalPhotos={photos.length}
+          hasNext={previewIndex < photos.length - 1}
+          hasPrevious={previewIndex > 0}
+          onNext={() => setPreviewIndex((i) => (i !== null ? i + 1 : null))}
+          onPrevious={() => setPreviewIndex((i) => (i !== null ? i - 1 : null))}
+          onClose={() => setPreviewIndex(null)}
           onDeleted={() => {
-            setPreviewPhoto(null);
-            getAllPhotos().then(setPhotos); // refresh this sheet's own thumbnails
-            onPhotosChanged(); // tell the parent too, so GalleryButton's thumbnail updates
+            setPreviewIndex(null);
+            getAllPhotos().then(setPhotos);
+            onPhotosChanged();
           }}
         />
       )}
