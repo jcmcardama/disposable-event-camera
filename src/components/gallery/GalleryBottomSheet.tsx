@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getAllPhotos } from '@/lib/indexeddb';
 import { PhotoPreview } from './PhotoPreview';
-import { useObjectUrl } from '@/lib/useObjectUrl';
+import { getPhotoUrl } from '@/lib/getPhotoUrl';
 
 type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
@@ -28,7 +28,7 @@ function StatusDot({ status }: { status: LocalPhoto['status'] }) {
 }
 
 function Thumbnail({ photo, onClick }: { photo: LocalPhoto; onClick: () => void }) {
-  const imageUrl = useObjectUrl(photo.blob);
+  const imageUrl = getPhotoUrl(photo.localId, photo.blob);
 
   return (
     <button

@@ -6,7 +6,9 @@
 
 import { useEffect, useState } from 'react';
 import { getAllPhotos } from '@/lib/indexeddb';
-import { useObjectUrl } from '@/lib/useObjectUrl';
+import { getPhotoUrl } from '@/lib/getPhotoUrl';
+
+type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
 interface GalleryButtonProps {
   onClick: () => void;
@@ -14,12 +16,12 @@ interface GalleryButtonProps {
 }
 
 export function GalleryButton({ onClick, refreshKey }: GalleryButtonProps) {
-  const [latestBlob, setLatestBlob] = useState<Blob | null>(null);
-  const thumbnailUrl = useObjectUrl(latestBlob);
-
+  const [latestPhoto, setLatestPhoto] = useState<LocalPhoto | null>(null);
+  const thumbnailUrl = latestPhoto ? getPhotoUrl(latestPhoto.localId, latestPhoto.blob) : null;
+  
   useEffect(() => {
     getAllPhotos().then((photos) => {
-      setLatestBlob(photos.length > 0 ? photos[photos.length - 1].blob : null);
+      setLatestPhoto(photos.length > 0 ? photos[photos.length - 1] : null);
     });
   }, [refreshKey]);
 
