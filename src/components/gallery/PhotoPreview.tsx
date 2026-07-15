@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { deletePhotoLocal, getAllPhotos } from '@/lib/indexeddb';
 import { processUploadQueue } from '@/lib/uploadQueue';
+import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 
 type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
@@ -26,8 +27,10 @@ const STATUS_LABEL: Record<LocalPhoto['status'], string> = {
 export function PhotoPreview({ photo, onClose, onDeleted }: PhotoPreviewProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
 
-  async function handleDelete() {
+  async function performDelete() {
+    setIsConfirmingDelete(false);
     setIsDeleting(true);
     // Per the spec: deleting only removes the photo locally and from
     // storage bookkeeping - it never frees up a shot. We intentionally
@@ -52,7 +55,7 @@ export function PhotoPreview({ photo, onClose, onDeleted }: PhotoPreviewProps) {
     // this photo's 'failed' status makes it eligible automatically.
     await processUploadQueue();
     setIsRetrying(false);
-    onClose(); // close preview - user can reopen gallery to see updated status
+    onClose();
   }
 
   return (
@@ -76,10 +79,7 @@ export function PhotoPreview({ photo, onClose, onDeleted }: PhotoPreviewProps) {
       </div>
 
       <div className="flex items-center justify-center gap-4 px-6 py-6">
-        <button
-          onClick={handleDownload}
-          className="rounded-lg bg-gray-800 px-5 py-3 text-white"
-        >
+        <button onClick={handleDownload} className="rounded-lg bg-gray-800 px-5 py-3 text-white">
           Download
         </button>
 
@@ -94,13 +94,23 @@ export function PhotoPreview({ photo, onClose, onDeleted }: PhotoPreviewProps) {
         )}
 
         <button
-          onClick={handleDelete}
+          onClick={() => setIsConfirmingDelete(true)}
           disabled={isDeleting}
           className="rounded-lg bg-red-900 px-5 py-3 text-white disabled:opacity-50"
         >
           {isDeleting ? 'Deleting...' : 'Delete'}
         </button>
       </div>
+
+      {isConfirmingDelete && (
+        <ConfirmDialog
+          title="Delete this photo?"
+          message="This shot will not be added back to your remaining count. This can't be undone."
+          confirmLabel="Delete"
+          onConfirm={performDelete}
+          onCancel={() => setIsConfirmingDelete(false)}
+        />
+      )}
     </div>
   );
 }
