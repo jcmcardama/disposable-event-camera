@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useCamera } from '@/lib/useCamera';
 import { compressImage } from '@/lib/compressImage';
 import { usePhotos, addPhoto } from '@/lib/photoStore';
@@ -17,17 +17,28 @@ interface CameraScreenProps {
 
 export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenProps) {
   const { videoRef, status, switchCamera, capturePhoto } = useCamera();
-  const photos = usePhotos();
+  const photos = usePhotos(); // gallery contents only - display/filenames, not the limit
   const [isCapturing, setIsCapturing] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
   const isOnline = useOnlineStatus();
 
-  const photoCount = photos.length;
-  const shotsRemaining = shotLimit - photoCount;
-  const limitReached = shotsRemaining <= 0;
+  // Authoritative from the server, fetched once on mount. Only ever
+  // incremented locally on capture afterward - never touched by
+  // delete, matching the server's own shots_used behavior.
+  const [shotsUsed, setShotsUsed] = useState<number | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/device-status?deviceId=${deviceId}`)
+      .then((r) => r.json())
+      .then((data) => setShotsUsed(data.shotsUsed))
+      .catch(() => setShotsUsed(0));
+  }, [deviceId]);
+
+  const shotsRemaining = shotsUsed === null ? null : shotLimit - shotsUsed;
+  const limitReached = shotsRemaining !== null && shotsRemaining <= 0;
 
   async function handleCapture() {
-    if (limitReached || isCapturing) return;
+    if (limitReached || shotsUsed === null || isCapturing) return;
 
     setIsCapturing(true);
     try {
@@ -38,7 +49,7 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
       }
 
       const compressedBlob = await compressImage(rawBlob);
-      const shotNumber = photoCount + 1;
+      const shotNumber = photos.length + 1; // cosmetic only - real shot number comes from the server on upload
       const fileName = `${displayName}-${String(shotNumber).padStart(3, '0')}.jpg`;
 
       await addPhoto({
@@ -51,6 +62,7 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
         capturedAt: Date.now(),
       });
 
+      setShotsUsed((prev) => (prev ?? 0) + 1);
       processUploadQueue();
     } finally {
       setIsCapturing(false);
@@ -61,7 +73,9 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
     <div className="relative flex h-dvh flex-col bg-black text-white">
       <div className="flex items-center justify-between px-4 py-3 text-sm">
         <span>{displayName}</span>
-        <span className="text-gray-400">{shotsRemaining} shots left</span>
+        <span className="text-gray-400">
+          {shotsRemaining === null ? '—' : `${shotsRemaining} shots left`}
+        </span>
       </div>
 
       {!isOnline && (
@@ -85,7 +99,7 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
 
       <div className="flex items-center justify-between px-8 py-6">
         <GalleryButton onClick={() => setIsGalleryOpen(true)} />
-        <button onClick={handleCapture} disabled={status !== 'ready' || limitReached || isCapturing} className="h-16 w-16 rounded-full border-4 border-white bg-white/20 disabled:opacity-30" aria-label="Capture photo" />
+        <button onClick={handleCapture} disabled={status !== 'ready' || limitReached || isCapturing || shotsUsed === null} className="h-16 w-16 rounded-full border-4 border-white bg-white/20 disabled:opacity-30" aria-label="Capture photo" />
         <button onClick={switchCamera} disabled={status !== 'ready'} className="h-10 w-10 rounded-full bg-gray-800 text-xl disabled:opacity-30" aria-label="Switch camera">↺</button>
       </div>
 
