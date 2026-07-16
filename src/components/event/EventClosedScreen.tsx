@@ -27,7 +27,6 @@ export function EventClosedScreen({ reason, eventStart }: EventClosedScreenProps
   // doesn't need to share anything beyond what GalleryBottomSheet
   // itself already requires.
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
-  const [refreshKey, setRefreshKey] = useState(0);
 
   return (
     <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
@@ -52,8 +51,6 @@ export function EventClosedScreen({ reason, eventStart }: EventClosedScreenProps
         <GalleryBottomSheet
           isOpen={isGalleryOpen}
           onClose={() => setIsGalleryOpen(false)}
-          refreshKey={refreshKey}
-          onPhotosChanged={() => setRefreshKey((k) => k + 1)}
         />
       )}
     </div>

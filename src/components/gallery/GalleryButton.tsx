@@ -4,39 +4,22 @@
 
 'use client';
 
-import { useEffect, useState } from 'react';
-import { getAllPhotos } from '@/lib/indexeddb';
-import { usePhotoDataUrl } from '@/lib/usePhotoDataUrl';
-
-type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
+import { usePhotos } from '@/lib/photoStore';
+import { getOrCreateObjectUrl } from '@/lib/objectUrlCache';
 
 interface GalleryButtonProps {
   onClick: () => void;
-  refreshKey: number; // same signal CameraScreen already uses to tell the gallery to reload
 }
 
-export function GalleryButton({ onClick, refreshKey }: GalleryButtonProps) {
-  const [latestPhoto, setLatestPhoto] = useState<LocalPhoto | null>(null);
-
-  // Called unconditionally, with null fallbacks - hooks can't be called
-  // conditionally, so the "no photo yet" case is handled inside the
-  // hook itself rather than by skipping the call here.
-  const thumbnailUrl = usePhotoDataUrl(latestPhoto?.localId ?? null, latestPhoto?.blob ?? null);
-
-  useEffect(() => {
-    getAllPhotos().then((photos) => {
-      setLatestPhoto(photos.length > 0 ? photos[photos.length - 1] : null);
-    });
-  }, [refreshKey]);
+export function GalleryButton({ onClick }: GalleryButtonProps) {
+  const photos = usePhotos();
+  const latestPhoto = photos.length > 0 ? photos[photos.length - 1] : null;
+  const thumbnailUrl = latestPhoto ? getOrCreateObjectUrl(latestPhoto.localId, latestPhoto.blob) : null;
 
   return (
-    <button
-      onClick={onClick}
-      className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-600 bg-gray-800"
-      aria-label="Open gallery"
-    >
+    <button onClick={onClick} className="relative h-10 w-10 overflow-hidden rounded-full border border-gray-600 bg-gray-800" aria-label="Open gallery">
       {thumbnailUrl && (
-        // eslint-disable-next-line @next/next/no-img-element -- data: URL, not blob: - see dataUrlCache.ts note
+        // eslint-disable-next-line @next/next/no-img-element -- blob: URL, see objectUrlCache.ts
         <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
       )}
     </button>

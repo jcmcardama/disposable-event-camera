@@ -1,10 +1,8 @@
-// Caches one object URL per photo, keyed by localId (stable for a
-// photo's whole lifetime) rather than by Blob reference (which changes
-// on every IndexedDB read, even when the image bytes haven't). This is
-// what actually fixes the "broken image on status change" bug: a
-// photo's URL is now created exactly once and reused, instead of being
-// revoked and recreated every time an unrelated field (like status)
-// changes and triggers a fresh read.
+// Caches one object URL per photo, keyed by localId. Safe now that
+// photoStore.ts guarantees a photo's Blob reference is set exactly
+// once, at capture, and never replaced by an unrelated status update -
+// so a URL created here stays valid for the photo's entire session and
+// only ever needs revoking when the photo is actually deleted.
 const cache = new Map<string, string>();
 
 export function getOrCreateObjectUrl(localId: string, blob: Blob): string {
@@ -20,6 +18,7 @@ export function getOrCreateObjectUrl(localId: string, blob: Blob): string {
 // routine status update - that's the whole point of this cache.
 export function revokeObjectUrl(localId: string) {
   const url = cache.get(localId);
+
   if (url) {
     URL.revokeObjectURL(url);
     cache.delete(localId);
