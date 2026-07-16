@@ -32,8 +32,19 @@ export function useCamera() {
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode },
-        audio: false, // spec says no shutter sound, and we don't need audio at all
+        video: {
+          facingMode: mode,
+          // Request a high-resolution stream explicitly - without this, the
+          // browser can default to a much lower resolution regardless of the
+          // camera's actual capability, which is almost certainly the real
+          // source of the blurriness (no compression setting can add back
+          // detail that was never in the captured frame to begin with).
+          // 'ideal' is a hint, not a hard requirement, so it still degrades
+          // gracefully on devices/cameras that can't hit this resolution.
+          width: { ideal: 2560 },
+          height: { ideal: 1440 },
+        },
+        audio: true,
       });
 
       streamRef.current = stream;
