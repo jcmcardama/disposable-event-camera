@@ -133,22 +133,26 @@ export function AdminDashboard() {
 
         <label className="block text-sm text-gray-400">
           Start time
-          <input
-            type="datetime-local"
-            defaultValue={toLocalInputValue(settings.event_start)}
-            onBlur={(e) => updateSettings({ event_start: new Date(e.target.value).toISOString() })}
-            className="mt-1 w-full rounded bg-gray-800 px-3 py-2 text-white"
-          />
+          <div className="mt-1 rounded-md bg-gray-800 px-3 py-2">
+            <input
+              type="datetime-local"
+              defaultValue={toLocalInputValue(settings.event_start)}
+              onBlur={(e) => updateSettings({ event_start: new Date(e.target.value).toISOString() })}
+              className="w-full text-white"
+            />
+          </div>
         </label>
 
         <label className="block text-sm text-gray-400">
           End time
-          <input
-            type="datetime-local"
-            defaultValue={toLocalInputValue(settings.event_end)}
-            onBlur={(e) => updateSettings({ event_end: new Date(e.target.value).toISOString() })}
-            className="mt-1 w-full rounded bg-gray-800 px-3 py-2 text-white"
-          />
+          <div className="mt-1 rounded-md bg-gray-800 px-3 py-2">
+            <input
+              type="datetime-local"
+              defaultValue={toLocalInputValue(settings.event_end)}
+              onBlur={(e) => updateSettings({ event_end: new Date(e.target.value).toISOString() })}
+              className="w-full text-white"
+            />
+          </div>
         </label>
 
         <label className="block text-sm text-gray-400">
