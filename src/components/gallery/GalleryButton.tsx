@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { getAllPhotos } from '@/lib/indexeddb';
-import { getPhotoUrl } from '@/lib/getPhotoUrl';
+import { usePhotoDataUrl } from '@/lib/usePhotoDataUrl';
 
 type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
@@ -17,8 +17,12 @@ interface GalleryButtonProps {
 
 export function GalleryButton({ onClick, refreshKey }: GalleryButtonProps) {
   const [latestPhoto, setLatestPhoto] = useState<LocalPhoto | null>(null);
-  const thumbnailUrl = latestPhoto ? getPhotoUrl(latestPhoto.localId, latestPhoto.blob) : null;
-  
+
+  // Called unconditionally, with null fallbacks - hooks can't be called
+  // conditionally, so the "no photo yet" case is handled inside the
+  // hook itself rather than by skipping the call here.
+  const thumbnailUrl = usePhotoDataUrl(latestPhoto?.localId ?? null, latestPhoto?.blob ?? null);
+
   useEffect(() => {
     getAllPhotos().then((photos) => {
       setLatestPhoto(photos.length > 0 ? photos[photos.length - 1] : null);
@@ -32,7 +36,7 @@ export function GalleryButton({ onClick, refreshKey }: GalleryButtonProps) {
       aria-label="Open gallery"
     >
       {thumbnailUrl && (
-        // eslint-disable-next-line @next/next/no-img-element -- blob: URL, see earlier note
+        // eslint-disable-next-line @next/next/no-img-element -- data: URL, not blob: - see dataUrlCache.ts note
         <img src={thumbnailUrl} alt="" className="h-full w-full object-cover" />
       )}
     </button>

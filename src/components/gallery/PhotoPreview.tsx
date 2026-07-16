@@ -10,6 +10,8 @@ import { processUploadQueue } from '@/lib/uploadQueue';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
 import { getPhotoUrl } from '@/lib/getPhotoUrl';
 import { revokeObjectUrl } from '@/lib/objectUrlCache';
+import { usePhotoDataUrl } from '@/lib/usePhotoDataUrl';
+import { forgetPhotoDataUrl } from '@/lib/dataUrlCache';
 
 type LocalPhoto = Awaited<ReturnType<typeof getAllPhotos>>[number];
 
@@ -43,7 +45,7 @@ export function PhotoPreview({
   const [isRetrying, setIsRetrying] = useState(false);
   const [isConfirmingDelete, setIsConfirmingDelete] = useState(false);
   const touchStartX = useRef<number | null>(null);
-  const imageUrl = getPhotoUrl(photo.localId, photo.blob);
+  const imageUrl = usePhotoDataUrl(photo.localId, photo.blob);
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX;
@@ -68,7 +70,7 @@ export function PhotoPreview({
     // storage bookkeeping - it never frees up a shot. We intentionally
     // do NOT decrement any counter here.
     await deletePhotoLocal(photo.localId);
-    revokeObjectUrl(photo.localId); // only revoke when the photo is actually gone
+    forgetPhotoDataUrl(photo.localId); // only revoke when the photo is actually gone
     onDeleted();
   }
 
