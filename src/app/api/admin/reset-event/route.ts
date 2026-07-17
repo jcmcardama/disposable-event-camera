@@ -12,8 +12,7 @@ export async function POST() {
   // themselves are NOT deleted here deliberately - wiping Storage is
   // a separate, more destructive action we don't want bundled silently
   // into "reset the event"; admin can clear the bucket manually via
-  // the Supabase dashboard if they actually want that, same as you've
-  // been doing during testing.
+  // the Supabase dashboard if they actually want that.
   const { error } = await supabase.from('devices').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
   if (error) {

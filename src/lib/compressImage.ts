@@ -1,6 +1,6 @@
 // Compresses a raw captured photo before it's saved or uploaded.
-// Resizes so the longest side is ~1600px and re-encodes as JPEG at
-// ~80% quality, per the spec - keeps files small (faster, more
+// Resizes so the longest side is ~2560px and re-encodes as JPEG at
+// ~92% quality, per the spec - keeps files small (faster, more
 // reliable uploads on event WiFi) without visible quality loss on
 // a phone screen.
 
@@ -10,7 +10,7 @@ const JPEG_QUALITY = 0.92;
 export async function compressImage(blob: Blob): Promise<Blob> {
   const bitmap = await createImageBitmap(blob);
 
-  // Only scale DOWN, never up - a photo already smaller than 1600px
+  // Only scale DOWN, never up - a photo already smaller than 2560px
   // on its longest side is left alone.
   const scale = Math.min(1, MAX_DIMENSION / Math.max(bitmap.width, bitmap.height));
   const targetWidth = Math.round(bitmap.width * scale);

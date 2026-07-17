@@ -5,7 +5,7 @@ import { AdminDashboard } from '@/components/admin/AdminDashboard';
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isCheckingSession, setIsCheckingSession] = useState(true); // avoids flashing the login form while we check
+  const [isCheckingSession, setIsCheckingSession] = useState(true); // avoids flashing the login form while cheking the session
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);

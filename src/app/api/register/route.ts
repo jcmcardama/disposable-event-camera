@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { deviceId, displayName } = body;
 
-  // Basic validation - the client should always send both, but we
+  // Basic validation - the client should always send both, but
   // never trust client input on the server.
   if (!deviceId || typeof deviceId !== 'string') {
     return NextResponse.json({ error: 'Missing or invalid deviceId' }, { status: 400 });
@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
 
   // upsert with onConflict on the primary key: if this deviceId somehow
   // already exists (e.g. the first request succeeded on the server but
-  // the browser never got the response and retried), we don't error -
-  // we just leave the existing row as-is rather than overwriting the name.
+  // the browser never got the response and retried),
+  // leave the existing row as-is rather than overwriting the name.
   const { data, error } = await supabase
     .from('devices')
     .upsert(

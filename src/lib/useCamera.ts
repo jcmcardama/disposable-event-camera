@@ -95,9 +95,8 @@ export function useCamera() {
     await startStream(newMode);
   }, [facingMode, startStream]);
 
-  // Captures the current video frame as a Blob (JPEG). Milestone 5 will
-  // take this Blob and compress it before saving to IndexedDB - for now
-  // we just hand back the raw capture.
+  // Captures the current video frame as a Blob (JPEG) and returns it. The caller can then
+  // take this Blob and compress it before saving to IndexedDB.
   const capturePhoto = useCallback((): Promise<Blob | null> => {
     return new Promise((resolve) => {
       const video = videoRef.current;

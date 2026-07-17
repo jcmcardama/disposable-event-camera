@@ -20,8 +20,8 @@ export async function GET() {
   const failed = photos.filter((p) => p.status === 'failed').length;
   const pending = photos.filter((p) => p.status === 'uploading').length;
 
-  // Storage usage: sum of file sizes isn't tracked in our schema (we
-  // only store paths, not sizes), so we report photo count as a proxy
+  // Storage usage: sum of file sizes isn't tracked in our schema
+  // (only store paths, not sizes), so report photo count as a proxy
   // rather than fetching every file's metadata individually, which
   // would be a lot of API calls for a number that's "nice to have."
   return NextResponse.json({

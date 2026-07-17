@@ -58,7 +58,7 @@ export function RegistrationScreen({ deviceId, onComplete }: RegistrationScreenP
 
   return (
     <div className="flex h-dvh flex-col items-center justify-center bg-black px-6 text-white">
-      <h1 className="mb-2 text-2xl font-semibold">Welcome!</h1>
+      <h1 className="mb-2 text-2xl font-semibold">Welcome Guest!</h1>
       <p className="mb-8 text-center text-sm text-gray-400">
         Enter your name so we know whose photos are whose.
       </p>

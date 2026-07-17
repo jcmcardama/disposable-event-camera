@@ -50,15 +50,14 @@ interface CameraDB extends DBSchema {
     };
   };
   photos: {
-    key: string; // localId (uuid) - separate from any server-assigned id,
-                 // since a photo exists locally before the server knows about it
+    key: string; // localId (uuid) - separate from any server-assigned id,since a photo exists locally before the server knows about it
     value: {
       localId: string;
       deviceId: string;
       shotNumber: number; // 1-5, determines the filename
-      fileName: string; // e.g. "Carlo-001.jpg"
+      fileName: string; // e.g. "Test-001.jpg"
       blob: Blob; // the compressed image data itself
-      status: 'pending' | 'uploading' | 'uploaded' | 'failed'; // 'pending' = not yet attempted (Milestone 6 starts using the rest)
+      status: 'pending' | 'uploading' | 'uploaded' | 'failed';
       capturedAt: number; // Date.now(), used to keep gallery order stable
       serverShotNumber?: number; // set once the server has claimed a shot number for this photo
     };
@@ -71,7 +70,7 @@ const DB_NAME = 'disposable-event-camera';
 const DB_VERSION = 3;
 
 // Opens (or creates, on first call) the IndexedDB database.
-// We call this fresh each time rather than caching the connection,
+// Called this fresh each time rather than caching the connection,
 // since idb's openDB is cheap to call repeatedly and this keeps the
 // code simple - no need to worry about stale connections.
 function getDB() {
@@ -136,7 +135,7 @@ export async function getAllPhotos(): Promise<LocalPhoto[]> {
 }
 
 // Updates just the status of an existing photo (e.g. once upload
-// succeeds or fails). Milestone 6 will use this.
+// succeeds or fails).
 export async function updatePhotoStatus(localId: string, status: LocalPhoto['status']) {
   const db = await getDB();
   const photo = await db.get('photos', localId);
@@ -146,7 +145,7 @@ export async function updatePhotoStatus(localId: string, status: LocalPhoto['sta
   }
 }
 
-// Removes a photo locally. Milestone 7's gallery delete button will use this -
+// Removes a photo locally. Gallery delete button will use this -
 // deleting never frees up a shot, since shotNumber assignment only looks at
 // how many photos currently exist, and shot numbers are never reused within
 // a session.

@@ -1,5 +1,5 @@
 // Shared TypeScript types, mirroring the database schema exactly.
-// Keeping these in sync with the SQL above means the frontend and
+// Keeping these in sync with the SQL means the frontend and
 // API routes can never disagree about what shape the data is in.
 
 export type PhotoStatus = 'uploading' | 'uploaded' | 'failed';
