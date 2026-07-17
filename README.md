@@ -6,7 +6,19 @@ A mobile-first, single-page web app that simulates a disposable film camera for 
 
 ---
 
-## 🚀 Project Overview
+## 🎂 Why I Built This
+
+This started as a gift, not a portfolio piece. I wanted a simple way for family and friends at my son's birthday party to capture candid moments throughout the day — the way disposable film cameras used to get passed around at weddings — without asking anyone to download an app, create an account, or even know what "the app" was called. Scan a code, type your name, start shooting.
+
+It also turned into a genuine excuse to build something with real reliability constraints, not just another CRUD tutorial: offline-first local storage, a server that's the actual source of truth for shot limits (not just the UI pretending to enforce them), and a background upload system that has to survive bad venue WiFi and guests locking their phones mid-upload.
+
+It ran at the actual event — shots were taken, uploaded, and are safely sitting in the gallery to look back on. This README documents the finished, event-tested version.
+
+<!-- Feel free to personalize this section further with a specific detail
+     from the day — his age, a favorite photo that came out of it, how
+     many guests used it, etc. -->
+
+
 
 Built to feel like handing someone a real disposable camera at a wedding, party, or gathering — point, shoot, done. No login screens, no app store detours, just a QR code and a camera.
 
@@ -17,6 +29,37 @@ Built to feel like handing someone a real disposable camera at a wedding, party,
 - **Full admin control** — a password-protected dashboard to open/close the event window, adjust the shot limit, monitor upload health, and reset individual devices or the whole event.
 - **Gallery access doesn't end with the event** — guests can still open their gallery and download their shots after the event window closes.
 
+## 📸 Screenshots
+
+<!--
+  Suggested screenshots — save each under /docs/screenshots/ using the
+  filenames below, and the images will appear automatically once added
+  (GitHub just shows a broken-image icon until the files exist).
+
+  1. camera-screen.png    — the main capture screen mid-session: visible
+     "X shots left" counter, the shutter button, and the flip-camera icon.
+  2. gallery.png           — the bottom-sheet gallery open over the camera,
+     showing a few thumbnails with their colored status dots.
+  3. photo-preview.png     — the fullscreen photo preview, with the
+     Download / Retry / Delete buttons visible at the bottom.
+  4. admin-dashboard.png   — the admin dashboard showing Event Controls
+     and Upload Statistics together.
+  5. qr-code.png           — the actual QR code guests scanned (the
+     printed sign or table card from the event, if you kept it).
+  6. in-action.jpg         — optional but a nice touch for a personal
+     project like this: a real photo from the event itself — the
+     printed QR code on a table, or a guest holding up their phone
+     using the camera.
+-->
+
+<table>
+  <tr>
+    <td align="center"><img src="./docs/screenshots/camera-screen.png" width="220" alt="Camera screen"><br><sub>Camera</sub></td>
+    <td align="center"><img src="./docs/screenshots/gallery.png" width="220" alt="Gallery bottom sheet"><br><sub>Gallery</sub></td>
+    <td align="center"><img src="./docs/screenshots/admin-dashboard.png" width="220" alt="Admin dashboard"><br><sub>Admin Dashboard</sub></td>
+  </tr>
+</table>
+
 ## 🛠️ Tech Stack
 
 - **Next.js** (App Router) + **TypeScript**
@@ -25,6 +68,73 @@ Built to feel like handing someone a real disposable camera at a wedding, party,
 - **IndexedDB** (via the `idb` library) — local photo persistence and device identity
 - **Browser Camera API** (`getUserMedia`) — no native camera app, no third-party SDK
 - **Vercel** — hosting and deployment
+
+## 🏗️ Architecture
+
+The whole design follows one rule, stated in the original project spec: **the server is always the source of truth for remaining shots, and a photo is never lost, regardless of what the network is doing.** Everything below exists in service of that.
+
+### System Overview
+
+```mermaid
+flowchart TB
+    subgraph Guest["📱 Guest Device (Browser)"]
+        Camera["Camera API\n(getUserMedia)"]
+        IDB[("IndexedDB\ndevice · photos · prefs")]
+        Queue["Upload Queue\n(background, auto-retry)"]
+    end
+
+    subgraph Vercel["▲ Vercel — Next.js API Routes"]
+        Register["/api/register"]
+        Upload["/api/upload"]
+        EventStatus["/api/event-status"]
+        AdminAPI["/api/admin/*"]
+    end
+
+    subgraph Supabase["🗄️ Supabase"]
+        DB[("Postgres\ndevices · photos · event_settings")]
+        Storage[("Storage\nevent-photos bucket")]
+    end
+
+    Admin["🔐 Admin Dashboard"]
+
+    Camera -->|capture + compress| IDB
+    IDB -->|saved instantly, before upload| Queue
+    Queue -->|POST photo| Upload
+    Upload -->|atomic shot claim| DB
+    Upload -->|store file| Storage
+    Register --> DB
+    EventStatus --> DB
+    Admin --> AdminAPI --> DB
+    Admin --> AdminAPI --> Storage
+```
+
+**Why the browser never talks to Supabase directly:** Row Level Security is enabled on every table with *zero* policies — the public key exposed to guests' browsers can't read or write anything at all. Every operation goes through a Next.js API route running with the server-only secret key. This isn't just a security preference; it's what makes the shot limit trustworthy — client-side JavaScript can be edited by anyone in DevTools, but a device can't talk its way past a database function it never has direct access to.
+
+### Capture → Upload Flow
+
+The sequence for a single photo, from tap to confirmed upload:
+
+```mermaid
+sequenceDiagram
+    participant G as Guest
+    participant B as Browser (IndexedDB)
+    participant A as /api/upload
+    participant D as Postgres
+    participant S as Storage
+
+    G->>B: Tap shutter
+    B->>B: Compress photo, save (status: pending)
+    Note over B: Photo is safe here — everything after<br/>this point is best-effort, not required
+    B->>A: POST photo (background, non-blocking)
+    A->>D: increment_shots_used() — atomic
+    D-->>A: new shot number, or "limit reached"
+    A->>S: Upload file to Storage
+    A->>D: Insert photo record
+    A-->>B: 200 OK
+    B->>B: Update status: uploaded
+```
+
+If any step from the `POST` onward fails — bad WiFi, a closed tab, a locked phone — the photo simply stays `pending` or `failed` in IndexedDB. The upload queue automatically retries on reconnect or when the app returns to the foreground, and nothing above the "photo is safe here" line ever needs to be redone.
 
 ## 📁 Project Structure
 
@@ -91,7 +201,7 @@ npm install
 ### Supabase Setup
 
 1. Create a new Supabase project.
-2. In the **SQL Editor**, run the schema (tables + RLS + the atomic shot-increment function) — see [`/docs/schema.sql`](./docs/schema.sql) for the full script.
+2. In the **SQL Editor**, run the schema (tables + RLS + the atomic shot-increment function) — see [`/public/schema.sql`](./public/schema.sql) for the full script.
 3. Create a **private** Storage bucket named `event-photos`.
 4. Under **Settings → Data API**, grab your Project URL. Under **Settings → API Keys**, grab your **Publishable** and **Secret** keys.
 
