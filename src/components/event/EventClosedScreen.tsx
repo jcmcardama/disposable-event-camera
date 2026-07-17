@@ -16,7 +16,7 @@ interface EventClosedScreenProps {
 const MESSAGES: Record<EventClosedScreenProps['reason'], string> = {
   disabled: "This event hasn't started yet. Check back soon!",
   'before-start': "The event hasn't started yet.",
-  'after-end': 'This event has ended. Thanks for being part of it!',
+  'after-end': 'This event has ended.\nThanks for being part of it!',
 };
 
 export function EventClosedScreen({ reason, eventStart }: EventClosedScreenProps) {
@@ -31,7 +31,7 @@ export function EventClosedScreen({ reason, eventStart }: EventClosedScreenProps
   return (
     <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
       {isWaiting && <Spinner />}
-      <p className="text-lg">{MESSAGES[reason]}</p>
+      <p className="text-lg whitespace-pre-line">{MESSAGES[reason]}</p>
       {reason === 'before-start' && (
         <p className="text-sm text-gray-400">
           Starts at {new Date(eventStart).toLocaleTimeString()}

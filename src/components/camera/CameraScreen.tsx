@@ -8,6 +8,7 @@ import { processUploadQueue } from '@/lib/uploadQueue';
 import { useOnlineStatus } from '@/lib/useOnlineStatus';
 import { GalleryBottomSheet } from '@/components/gallery/GalleryBottomSheet';
 import { GalleryButton } from '@/components/gallery/GalleryButton';
+import { ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface CameraScreenProps {
   deviceId: string;
@@ -99,8 +100,20 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
 
       <div className="flex items-center justify-between px-8 py-6">
         <GalleryButton onClick={() => setIsGalleryOpen(true)} />
-        <button onClick={handleCapture} disabled={status !== 'ready' || limitReached || isCapturing || shotsUsed === null} className="h-16 w-16 rounded-full border-4 border-white bg-white/20 disabled:opacity-30" aria-label="Capture photo" />
-        <button onClick={switchCamera} disabled={status !== 'ready'} className="h-10 w-10 rounded-full bg-gray-800 text-xl disabled:opacity-30" aria-label="Switch camera">↺</button>
+        <button
+          onClick={handleCapture}
+          disabled={status !== 'ready' || limitReached || isCapturing || shotsUsed === null}
+          className="flex items-center justify-center h-16 w-16 rounded-full border-4 border-white bg-white/20 disabled:opacity-30"
+          aria-label="Capture photo"
+        />
+        <button
+          onClick={switchCamera}
+          disabled={status !== 'ready'}
+          className="flex items-center justify-center h-10 w-10 rounded-full bg-gray-800 text-xl disabled:opacity-30"
+          aria-label="Switch camera"
+        >
+          <ArrowPathIcon className="h-6 w-6" />
+        </button>
       </div>
 
       <GalleryBottomSheet isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} />

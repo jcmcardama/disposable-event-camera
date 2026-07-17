@@ -9,6 +9,7 @@ import { removePhoto } from '@/lib/photoStore';
 import { getOrCreateObjectUrl, revokeObjectUrl } from '@/lib/objectUrlCache';
 import { processUploadQueue } from '@/lib/uploadQueue';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
+import { ArrowPathRoundedSquareIcon, FolderArrowDownIcon, TrashIcon } from '@heroicons/react/24/solid';
 
 interface LocalPhoto {
   localId: string;
@@ -103,14 +104,27 @@ export function PhotoPreview({ photo, currentIndex, totalPhotos, hasNext, hasPre
       </div>
 
       <div className="flex items-center justify-center gap-4 px-6 py-6">
-        <button onClick={handleDownload} className="rounded-lg bg-gray-800 px-5 py-3 text-white">Download</button>
+        <button
+          onClick={handleDownload}
+          className="flex items-center gap-2 rounded-lg bg-gray-800 px-5 py-3 text-white"
+        >
+          Download <FolderArrowDownIcon className="h-6 w-6" />
+        </button>
         {photo.status === 'failed' && (
-          <button onClick={handleRetry} disabled={isRetrying} className="rounded-lg bg-blue-600 px-5 py-3 text-white disabled:opacity-50">
-            {isRetrying ? 'Retrying...' : 'Retry upload'}
+          <button
+            onClick={handleRetry}
+            disabled={isRetrying}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 text-white disabled:opacity-50"
+          >
+            {isRetrying ? 'Retrying...' : <>Retry<ArrowPathRoundedSquareIcon className="h-6 w-6" /></>}
           </button>
         )}
-        <button onClick={() => setIsConfirmingDelete(true)} disabled={isDeleting} className="rounded-lg bg-red-900 px-5 py-3 text-white disabled:opacity-50">
-          {isDeleting ? 'Deleting...' : 'Delete'}
+        <button
+          onClick={() => setIsConfirmingDelete(true)}
+          disabled={isDeleting}
+          className="flex items-center gap-2 rounded-lg bg-red-900 px-5 py-3 text-white disabled:opacity-50"
+        >
+          {isDeleting ? 'Deleting...' : <>Delete <TrashIcon className="h-6 w-6" /></>}
         </button>
       </div>
 
