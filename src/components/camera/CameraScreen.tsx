@@ -17,10 +17,11 @@ interface CameraScreenProps {
 }
 
 export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenProps) {
-  const { videoRef, status, switchCamera, capturePhoto } = useCamera();
+  const { videoRef, status, facingMode, switchCamera, capturePhoto } = useCamera();
   const photos = usePhotos(); // gallery contents only - display/filenames, not the limit
   const [isCapturing, setIsCapturing] = useState(false);
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
+  const [showFlash, setShowFlash] = useState(false);
   const isOnline = useOnlineStatus();
 
   // Authoritative from the server, fetched once on mount. Only ever
@@ -40,6 +41,12 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
 
   async function handleCapture() {
     if (limitReached || shotsUsed === null || isCapturing) return;
+
+    // Immediate visual feedback the instant the shutter is tapped -
+    // decoupled from whether capture/compression/save actually succeed,
+    // so it never feels delayed even on a slower device.
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 150);
 
     setIsCapturing(true);
     try {
@@ -86,7 +93,21 @@ export function CameraScreen({ deviceId, displayName, shotLimit }: CameraScreenP
       )}
 
       <div className="relative flex-1 overflow-hidden bg-gray-900 touch-none">
-        <video ref={videoRef} autoPlay playsInline muted className={`h-full w-full object-cover ${status === 'ready' ? '' : 'hidden'}`} />
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={
+            `h-full w-full object-cover ${status === 'ready' ? '' : 'hidden'} ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`
+          }
+        />
+        {/* Brief white flash on capture - gives the guest immediate confirmation
+          a photo was taken, since there's no shutter sound (per spec) and no
+          visible UI change until the gallery thumbnail updates. */}
+        <div
+          className={`pointer-events-none absolute inset-0 bg-white transition-opacity duration-150 ${showFlash ? 'opacity-80' : 'opacity-0'}`}
+        />
         {status === 'loading' && <div className="flex h-full items-center justify-center text-gray-400">Starting camera...</div>}
         {status === 'permission-denied' && <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">Camera access was denied. Please allow camera access in your browser settings and reload the page.</div>}
         {status === 'no-camera' && <div className="flex h-full items-center justify-center px-6 text-center text-gray-400">No camera was found on this device.</div>}
