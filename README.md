@@ -4,6 +4,11 @@ A mobile-first, single-page web app that simulates a disposable film camera for 
 
 🔗 **Live App:** disposable-event-camera.vercel.app
 
+<p align="center">
+  <img src="./public/welcome-screen.png" width="220" alt="Welcome screen"><br>
+  <span>Home</span>
+</p>
+
 ---
 
 ## 🎂 Why I Built This
@@ -12,13 +17,9 @@ This started as a gift, not a portfolio piece. I wanted a simple way for family 
 
 It also turned into a genuine excuse to build something with real reliability constraints, not just another CRUD tutorial: offline-first local storage, a server that's the actual source of truth for shot limits (not just the UI pretending to enforce them), and a background upload system that has to survive bad venue WiFi and guests locking their phones mid-upload.
 
-It ran at the actual event — shots were taken, uploaded, and are safely sitting in the gallery to look back on. This README documents the finished, event-tested version.
-
 <!-- Feel free to personalize this section further with a specific detail
      from the day — his age, a favorite photo that came out of it, how
      many guests used it, etc. -->
-
-
 
 Built to feel like handing someone a real disposable camera at a wedding, party, or gathering — point, shoot, done. No login screens, no app store detours, just a QR code and a camera.
 
@@ -54,9 +55,10 @@ Built to feel like handing someone a real disposable camera at a wedding, party,
 
 <table>
   <tr>
-    <td align="center"><img src="./docs/screenshots/camera-screen.png" width="220" alt="Camera screen"><br><sub>Camera</sub></td>
-    <td align="center"><img src="./docs/screenshots/gallery.png" width="220" alt="Gallery bottom sheet"><br><sub>Gallery</sub></td>
-    <td align="center"><img src="./docs/screenshots/admin-dashboard.png" width="220" alt="Admin dashboard"><br><sub>Admin Dashboard</sub></td>
+    <td align="center"><img src="./public/camera-screen.png" width="220" alt="Camera screen"><br><sub>Camera</sub></td>
+    <td align="center"><img src="./public/gallery.png" width="220" alt="Gallery bottom sheet"><br><sub>Gallery</sub></td>
+    <td align="center"><img src="./public/photo-preview.png" width="220" alt="Photo Preview"><br><sub>Preview</sub></td>
+    <td align="center"><img src="./public/admin-dashboard.png" width="220" alt="Admin dashboard"><br><sub>Admin Dashboard</sub></td>
   </tr>
 </table>
 
