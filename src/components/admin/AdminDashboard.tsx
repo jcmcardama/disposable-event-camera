@@ -6,6 +6,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Footer } from '../shared/Footer';
 
 interface Settings {
   is_enabled: boolean;
@@ -214,6 +215,7 @@ export function AdminDashboard() {
           Reset entire event (deletes all devices + photos)
         </button>
       </section>
+      <Footer />
     </div>
   );
 }
