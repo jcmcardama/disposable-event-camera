@@ -166,7 +166,7 @@ src/
 │   ├── registration/RegistrationScreen.tsx
 │   ├── event/EventClosedScreen.tsx
 │   ├── admin/AdminDashboard.tsx
-│   └── shared/                     # ConfirmDialog, Spinner
+│   └── shared/                     # ConfirmDialog, Spinner, Footer
 ├── lib/
 │   ├── supabase/{client,server}.ts  # Separate browser/server Supabase clients
 │   ├── indexeddb.ts                 # IndexedDB persistence layer (device identity, prefs, photos)
