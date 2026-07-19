@@ -5,7 +5,7 @@
 
 export function Footer() {
   return (
-    <footer className="bg-black/70 py-3 text-center text-xs text-gray-300 backdrop-blur-sm">
+    <footer className="bg-white py-3 text-center text-xs text-gray-600">
       Jan Carlo M. Cardama © 2026
     </footer>
   );

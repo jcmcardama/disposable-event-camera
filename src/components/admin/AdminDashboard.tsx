@@ -113,108 +113,110 @@ export function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-dvh space-y-8 bg-gray-950 p-6 text-white">
-      <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+    <div className="min-h-dvh">
+      <div className="space-y-8 bg-gray-950 p-6 text-white">
+        <h1 className="text-xl font-semibold">Admin Dashboard</h1>
 
-      {statusMessage && <p className="text-sm text-blue-400">{statusMessage}</p>}
+        {statusMessage && <p className="text-sm text-blue-400">{statusMessage}</p>}
 
-      {/* Event Controls */}
-      <section className="space-y-3 rounded-lg bg-gray-900 p-4">
-        <h2 className="font-medium">Event Controls</h2>
+        {/* Event Controls */}
+        <section className="space-y-3 rounded-lg bg-gray-900 p-4">
+          <h2 className="font-medium">Event Controls</h2>
 
-        <div className="flex items-center justify-between">
-          <span>Event enabled</span>
-          <button
-            onClick={() => updateSettings({ is_enabled: !settings.is_enabled })}
-            className={`rounded-full px-4 py-1 text-sm ${settings.is_enabled ? 'bg-green-600' : 'bg-gray-700'}`}
-          >
-            {settings.is_enabled ? 'Enabled' : 'Disabled'}
-          </button>
-        </div>
+          <div className="flex items-center justify-between">
+            <span>Event enabled</span>
+            <button
+              onClick={() => updateSettings({ is_enabled: !settings.is_enabled })}
+              className={`rounded-full px-4 py-1 text-sm ${settings.is_enabled ? 'bg-green-600' : 'bg-gray-700'}`}
+            >
+              {settings.is_enabled ? 'Enabled' : 'Disabled'}
+            </button>
+          </div>
 
-        <label className="block text-sm text-gray-400">
-          Start time
-          <div className="mt-1 rounded-md bg-gray-800 px-3 py-2">
+          <label className="block text-sm text-gray-400">
+            Start time
+            <div className="mt-1 rounded-md bg-gray-800 px-3 py-2">
+              <input
+                type="datetime-local"
+                defaultValue={toLocalInputValue(settings.event_start)}
+                onBlur={(e) => updateSettings({ event_start: new Date(e.target.value).toISOString() })}
+                className="w-full text-white"
+              />
+            </div>
+          </label>
+
+          <label className="block text-sm text-gray-400">
+            End time
+            <div className="mt-1 rounded-md bg-gray-800 px-3 py-2">
+              <input
+                type="datetime-local"
+                defaultValue={toLocalInputValue(settings.event_end)}
+                onBlur={(e) => updateSettings({ event_end: new Date(e.target.value).toISOString() })}
+                className="w-full text-white"
+              />
+            </div>
+          </label>
+
+          <label className="block text-sm text-gray-400">
+            Shot limit
             <input
-              type="datetime-local"
-              defaultValue={toLocalInputValue(settings.event_start)}
-              onBlur={(e) => updateSettings({ event_start: new Date(e.target.value).toISOString() })}
-              className="w-full text-white"
+              type="number"
+              min={1}
+              defaultValue={settings.shot_limit}
+              onBlur={(e) => updateSettings({ shot_limit: Number(e.target.value) })}
+              className="mt-1 w-full rounded bg-gray-800 px-3 py-2 text-white"
             />
+          </label>
+        </section>
+
+        {/* Stats */}
+        <section className="rounded-lg bg-gray-900 p-4">
+          <h2 className="mb-3 font-medium">Upload Statistics</h2>
+          <div className="grid grid-cols-2 gap-3 text-sm">
+            <Stat label="Devices" value={stats.totalDevices} />
+            <Stat label="Total Photos" value={stats.totalPhotos} />
+            <Stat label="Uploaded" value={stats.uploaded} />
+            <Stat label="Failed" value={stats.failed} />
+            <Stat label="Pending" value={stats.pending} />
           </div>
-        </label>
+        </section>
 
-        <label className="block text-sm text-gray-400">
-          End time
-          <div className="mt-1 rounded-md bg-gray-800 px-3 py-2">
-            <input
-              type="datetime-local"
-              defaultValue={toLocalInputValue(settings.event_end)}
-              onBlur={(e) => updateSettings({ event_end: new Date(e.target.value).toISOString() })}
-              className="w-full text-white"
-            />
-          </div>
-        </label>
-
-        <label className="block text-sm text-gray-400">
-          Shot limit
-          <input
-            type="number"
-            min={1}
-            defaultValue={settings.shot_limit}
-            onBlur={(e) => updateSettings({ shot_limit: Number(e.target.value) })}
-            className="mt-1 w-full rounded bg-gray-800 px-3 py-2 text-white"
-          />
-        </label>
-      </section>
-
-      {/* Stats */}
-      <section className="rounded-lg bg-gray-900 p-4">
-        <h2 className="mb-3 font-medium">Upload Statistics</h2>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <Stat label="Devices" value={stats.totalDevices} />
-          <Stat label="Total Photos" value={stats.totalPhotos} />
-          <Stat label="Uploaded" value={stats.uploaded} />
-          <Stat label="Failed" value={stats.failed} />
-          <Stat label="Pending" value={stats.pending} />
-        </div>
-      </section>
-
-      {/* Health Check */}
-      <section className="rounded-lg bg-gray-900 p-4">
-        <h2 className="mb-3 font-medium">Health Check</h2>
-        {health && (
-          <div className="space-y-1 text-sm">
-            <HealthRow label="Database" ok={health.checks.database} />
-            <HealthRow label="Storage" ok={health.checks.storage} />
-            <HealthRow label="Configuration" ok={health.checks.configuration} />
-          </div>
-        )}
-        <button onClick={loadAll} className="mt-3 rounded bg-gray-800 px-3 py-2 text-sm">
-          Refresh
-        </button>
-      </section>
-
-      {/* Reset Actions */}
-      <section className="space-y-3 rounded-lg bg-gray-900 p-4">
-        <h2 className="font-medium">Reset</h2>
-
-        <div className="flex gap-2">
-          <input
-            value={resetDeviceId}
-            onChange={(e) => setResetDeviceId(e.target.value)}
-            placeholder="Device UUID"
-            className="flex-1 rounded bg-gray-800 px-3 py-2 text-sm text-white"
-          />
-          <button onClick={resetDevice} className="rounded bg-yellow-700 px-3 py-2 text-sm">
-            Reset device
+        {/* Health Check */}
+        <section className="rounded-lg bg-gray-900 p-4">
+          <h2 className="mb-3 font-medium">Health Check</h2>
+          {health && (
+            <div className="space-y-1 text-sm">
+              <HealthRow label="Database" ok={health.checks.database} />
+              <HealthRow label="Storage" ok={health.checks.storage} />
+              <HealthRow label="Configuration" ok={health.checks.configuration} />
+            </div>
+          )}
+          <button onClick={loadAll} className="mt-3 rounded bg-gray-800 px-3 py-2 text-sm">
+            Refresh
           </button>
-        </div>
+        </section>
 
-        <button onClick={resetEvent} className="w-full rounded bg-red-900 px-3 py-2 text-sm">
-          Reset entire event (deletes all devices + photos)
-        </button>
-      </section>
+        {/* Reset Actions */}
+        <section className="space-y-3 rounded-lg bg-gray-900 p-4">
+          <h2 className="font-medium">Reset</h2>
+
+          <div className="flex gap-2">
+            <input
+              value={resetDeviceId}
+              onChange={(e) => setResetDeviceId(e.target.value)}
+              placeholder="Device UUID"
+              className="flex-1 rounded bg-gray-800 px-3 py-2 text-sm text-white"
+            />
+            <button onClick={resetDevice} className="rounded bg-yellow-700 px-3 py-2 text-sm">
+              Reset device
+            </button>
+          </div>
+
+          <button onClick={resetEvent} className="w-full rounded bg-red-900 px-3 py-2 text-sm">
+            Reset entire event (deletes all devices + photos)
+          </button>
+        </section>
+      </div>
       <Footer />
     </div>
   );
