@@ -7,6 +7,7 @@
 import { useState } from 'react';
 import { Spinner } from '@/components/shared/Spinner';
 import { GalleryBottomSheet } from '@/components/gallery/GalleryBottomSheet';
+import { Footer } from '../shared/Footer';
 
 interface EventClosedScreenProps {
   reason: 'disabled' | 'before-start' | 'after-end';
@@ -29,30 +30,38 @@ export function EventClosedScreen({ reason, eventStart }: EventClosedScreenProps
   const [isGalleryOpen, setIsGalleryOpen] = useState(false);
 
   return (
-    <div className="flex h-dvh flex-col items-center justify-center gap-4 bg-black px-6 text-center text-white">
-      {isWaiting && <Spinner />}
-      <p className="text-lg whitespace-pre-line">{MESSAGES[reason]}</p>
-      {reason === 'before-start' && (
-        <p className="text-sm text-gray-400">
-          Starts at {new Date(eventStart).toLocaleTimeString()}
-        </p>
-      )}
+    <div className="relative flex h-dvh flex-col overflow-hidden bg-black text-white">
+      <div
+        className="absolute inset-0 bg-contain bg-center blur-md"
+        style={{ backgroundImage: "url('/event-background.jpg')" }}
+      />
+      <div className="absolute inset-0 bg-black/30" />
 
-      {reason === 'after-end' && (
-        <button
-          onClick={() => setIsGalleryOpen(true)}
-          className="mt-2 rounded-lg bg-white px-6 py-3 font-medium text-black"
-        >
-          View my photos
-        </button>
-      )}
+      {/* Single foreground stacking context - content and Footer are now
+          siblings inside the SAME z-10 context, so GalleryBottomSheet's
+          z-50 correctly out-ranks Footer instead of being trapped in a
+          separate context that Footer's own z-10 wrapper could paint over. */}
+      <div className="relative z-10 flex h-full flex-col">
+        <div className="flex flex-1 flex-col items-center justify-center gap-4 px-6 text-center">
+          {isWaiting && <Spinner />}
+          <p className="text-lg whitespace-pre-line">{MESSAGES[reason]}</p>
+          {reason === 'before-start' && (
+            <p className="text-sm text-gray-400">
+              Starts at {new Date(eventStart).toLocaleTimeString()}
+            </p>
+          )}
+          {reason === 'after-end' && (
+            <button onClick={() => setIsGalleryOpen(true)} className="mt-2 rounded-lg bg-white px-6 py-3 font-medium text-black">
+              View my photos
+            </button>
+          )}
+          {reason === 'after-end' && (
+            <GalleryBottomSheet isOpen={isGalleryOpen} onClose={() => setIsGalleryOpen(false)} />
+          )}
+        </div>
 
-      {reason === 'after-end' && (
-        <GalleryBottomSheet
-          isOpen={isGalleryOpen}
-          onClose={() => setIsGalleryOpen(false)}
-        />
-      )}
+        <Footer />
+      </div>
     </div>
   );
 }
